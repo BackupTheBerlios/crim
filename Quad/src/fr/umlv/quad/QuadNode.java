@@ -43,8 +43,7 @@ public class QuadNode {
 	 * @throws IOException
 	 */
 	public QuadNode(
-		Raster raster,
-		int band,
+		RasterBand raster,
 		int currentLineOffset,
 		int currentColumnOffset,
 		int currentHeight,
@@ -58,7 +57,7 @@ public class QuadNode {
 		 * inférieure à 1x1 */
 		if (currentHeight * currentWidth <= 1) {
 			plain= true;
-			value= raster.pixel(currentLineOffset, currentColumnOffset, band);
+			value= raster.pixel(currentLineOffset, currentColumnOffset);
 			stddev= 0;
 			return;
 		}
@@ -76,7 +75,6 @@ public class QuadNode {
 		topLeftChild=
 			new QuadNode(
 				raster,
-				band,
 				currentLineOffset,
 				currentColumnOffset,
 				childRasterHeight,
@@ -88,7 +86,6 @@ public class QuadNode {
 		topRightChild=
 			new QuadNode(
 				raster,
-				band,
 				currentLineOffset,
 				rightOffset,
 				childRasterHeight,
@@ -100,7 +97,6 @@ public class QuadNode {
 		bottomLeftChild=
 			new QuadNode(
 				raster,
-				band,
 				bottomOffset,
 				currentColumnOffset,
 				childRasterHeight,
@@ -112,7 +108,6 @@ public class QuadNode {
 		bottomRightChild=
 			new QuadNode(
 				raster,
-				band,
 				bottomOffset,
 				rightOffset,
 				childRasterHeight,
@@ -176,17 +171,17 @@ public class QuadNode {
 	 * Création du raster correspondant au quadtree dont la racine est le noeud
 	 * courant (this)
 	 */
-	public Raster toRaster(int height, int width, int values) {
+	public RasterBand toRasterBand(int height, int width, int values) {
 		if (plain)
-			return new Raster(height, width, values, value);
+			return new RasterBand(height, width, values, value);
 
 		int subRasterHeight= height / 2;
 		int subRasterWidth= width / 2;
-		return new Raster(
-			topLeftChild.toRaster(subRasterHeight, subRasterWidth, values),
-			topRightChild.toRaster(subRasterHeight, subRasterWidth, values),
-			bottomLeftChild.toRaster(subRasterHeight, subRasterWidth, values),
-			bottomRightChild.toRaster(subRasterHeight, subRasterWidth, values));
+		return new RasterBand(
+			topLeftChild.toRasterBand(subRasterHeight, subRasterWidth, values),
+			topRightChild.toRasterBand(subRasterHeight, subRasterWidth, values),
+			bottomLeftChild.toRasterBand(subRasterHeight, subRasterWidth, values),
+			bottomRightChild.toRasterBand(subRasterHeight, subRasterWidth, values));
 	}
 
 	public void compress(double currentDev, double factor) {

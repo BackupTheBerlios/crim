@@ -25,7 +25,7 @@ public class Util {
 	public static void makeDir(String path) {
 		File filePath= new File(path);
 		File fileDir= filePath.getParentFile();
-		boolean ok= fileDir.mkdirs();
+		fileDir.mkdirs();
 	}
 
 	public static double log4(double i) {
