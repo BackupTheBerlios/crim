@@ -43,7 +43,7 @@ public class QuadNode {
 	 * @throws IOException
 	 */
 	public QuadNode(
-		RasterBand raster,
+		RasterChannel raster,
 		int currentLineOffset,
 		int currentColumnOffset,
 		int currentHeight,
@@ -171,13 +171,13 @@ public class QuadNode {
 	 * Création du raster correspondant au quadtree dont la racine est le noeud
 	 * courant (this)
 	 */
-	public RasterBand toRasterBand(int height, int width, int values) {
+	public RasterChannel toRasterBand(int height, int width, int values) {
 		if (plain)
-			return new RasterBand(height, width, values, value);
+			return new RasterChannel(height, width, values, value);
 
 		int subRasterHeight= height / 2;
 		int subRasterWidth= width / 2;
-		return new RasterBand(
+		return new RasterChannel(
 			topLeftChild.toRasterBand(subRasterHeight, subRasterWidth, values),
 			topRightChild.toRasterBand(subRasterHeight, subRasterWidth, values),
 			bottomLeftChild.toRasterBand(

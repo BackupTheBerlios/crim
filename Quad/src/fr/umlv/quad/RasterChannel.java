@@ -8,7 +8,7 @@ import java.util.Arrays;
 /**
  * @author cpele
  */
-public class RasterBand {
+public class RasterChannel {
 	private int width;
 	private int height;
 	private int values;
@@ -20,7 +20,7 @@ public class RasterBand {
 	 * @param height
 	 * @param values
 	 */
-	public RasterBand(int height, int width, int values) {
+	public RasterChannel(int height, int width, int values) {
 		this.width= width;
 		this.height= height;
 		this.values= values;
@@ -34,7 +34,7 @@ public class RasterBand {
 	 * @param values
 	 * @param intArray
 	 */
-	public RasterBand(int height, int width, int values, double[] array) {
+	public RasterChannel(int height, int width, int values, double[] array) {
 		this(height, width, values);
 		load(array);
 	}
@@ -42,7 +42,7 @@ public class RasterBand {
 	/**
 	 * Création d'un raster à partir d'une valeur par défaut
 	 */
-	public RasterBand(int height, int width, int values, double defaultValue) {
+	public RasterChannel(int height, int width, int values, double defaultValue) {
 		this(height, width, values);
 		Arrays.fill(array, defaultValue);
 	}
@@ -62,11 +62,11 @@ public class RasterBand {
 	 * @param bottomLeft
 	 * @param bottomRight
 	 */
-	public RasterBand(
-		RasterBand topLeft,
-		RasterBand topRight,
-		RasterBand bottomLeft,
-		RasterBand bottomRight) {
+	public RasterChannel(
+		RasterChannel topLeft,
+		RasterChannel topRight,
+		RasterChannel bottomLeft,
+		RasterChannel bottomRight) {
 		this(topLeft.height * 2, topLeft.width * 2, 255);
 		checkDimensions(topLeft, topRight, bottomLeft, bottomRight);
 		for (int i= 0; i < topLeft.height; i++) {
@@ -91,7 +91,7 @@ public class RasterBand {
 	 * @param other
 	 * @return
 	 */
-	public boolean hasSameDimensions(RasterBand other) {
+	public boolean hasSameDimensions(RasterChannel other) {
 		return (
 			height == other.height
 				&& width == other.width
@@ -103,10 +103,10 @@ public class RasterBand {
 	 * du raster
 	 */
 	private void checkDimensions(
-		RasterBand topLeft,
-		RasterBand topRight,
-		RasterBand bottomLeft,
-		RasterBand bottomRight) {
+		RasterChannel topLeft,
+		RasterChannel topRight,
+		RasterChannel bottomLeft,
+		RasterChannel bottomRight) {
 		boolean ok=
 			(values == topLeft.values
 				&& height == topLeft.height * 2
@@ -246,12 +246,12 @@ public class RasterBand {
 	 * @param width
 	 * @return
 	 */
-	public RasterBand subRaster(
+	public RasterChannel subRaster(
 		int lineOffset,
 		int columnOffset,
 		int height,
 		int width) {
-		RasterBand subRaster= new RasterBand(height, width, values);
+		RasterChannel subRaster= new RasterChannel(height, width, values);
 
 		for (int i= lineOffset; i < height + lineOffset; i++) {
 			for (int j= columnOffset; j < width + columnOffset; j++) {

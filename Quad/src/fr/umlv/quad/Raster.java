@@ -16,26 +16,26 @@ import java.io.StreamTokenizer;
  * @author cpele
  */
 public class Raster {
-	public Raster(RasterBand[] rasterBands) {
-		numBands= rasterBands.length;
-		if (numBands != 1 && numBands != 3)
+	public Raster(RasterChannel[] channels) {
+		numChannels= channels.length;
+		if (numChannels != 1 && numChannels != 3)
 			throw new QuadError("Le nombre de composantes doit valoir 1 ou 3");
-		bands= rasterBands;
+		this.channels= channels;
 
-		width= rasterBands[0].width();
-		height= rasterBands[0].height();
-		values= rasterBands[0].values();
+		width= channels[0].width();
+		height= channels[0].height();
+		values= channels[0].values();
 	}
 
 	public Raster(int height, int width, int values, int numBands) {
 		this.height= height;
 		this.width= width;
 		this.values= values;
-		this.numBands= numBands;
+		this.numChannels= numBands;
 
-		bands= new RasterBand[numBands];
+		channels= new RasterChannel[numBands];
 		for (int i= 0; i < numBands; i++) {
-			bands[i]= new RasterBand(height, width, values);
+			channels[i]= new RasterChannel(height, width, values);
 		}
 	}
 
@@ -46,12 +46,12 @@ public class Raster {
 
 			for (int j= 0; j < height; j++) {
 				for (int k= 0; k < width; k++) {
-					for (int i= 0; i < numBands; i++) {
+					for (int i= 0; i < numChannels; i++) {
 						int value= in.read();
 						if (value == -1)
 							throw new QuadError(
 								path + ": Fin de fichier inattendue");
-						bands[i].pixel(j, k, value);
+						channels[i].pixel(j, k, value);
 					}
 				}
 			}
@@ -60,16 +60,16 @@ public class Raster {
 		}
 	}
 
-	private int numBands;
-	private RasterBand[] bands;
+	private int numChannels;
+	private RasterChannel[] channels;
 	private int width, height, values;
 
 	public void save(String path) throws FileNotFoundException {
 		PrintStream out= new PrintStream(new FileOutputStream(path));
 
-		if (numBands == 1) {
+		if (numChannels == 1) {
 			out.println("P5");
-		} else if (numBands == 3) {
+		} else if (numChannels == 3) {
 			out.println("P6");
 		} else {
 			throw new QuadError("On ne devrait pas arriver là, c'est un bug pourri, fuyez !");
@@ -79,19 +79,20 @@ public class Raster {
 
 		for (int i= 0; i < height; i++) {
 			for (int j= 0; j < width; j++) {
-				for (int k= 0; k < numBands; k++) {
+				for (int k= 0; k < numChannels; k++) {
 					out.write((int)pixel(i, j, k));
 				}
 			}
 		}
+		out.flush();
 	}
 
 	private double pixel(int line, int column, int band) {
-		return bands[band].pixel(line, column);
+		return channels[band].pixel(line, column);
 	}
 
 	private void pixel(int line, int column, int band, double value) {
-		bands[band].pixel(line, column, value);
+		channels[band].pixel(line, column, value);
 	}
 
 	/**
@@ -110,9 +111,9 @@ public class Raster {
 		else
 			throw new QuadError("Erreur lors de la lecture du type PGM");
 		if (typeStr.equals("P5")) {
-			numBands= 1;
+			numChannels= 1;
 		} else if (typeStr.equals("P6")) {
-			numBands= 3;
+			numChannels= 3;
 		} else {
 			throw new QuadError("Type de fichier inconnu: " + typeStr);
 		}
@@ -138,9 +139,9 @@ public class Raster {
 		else
 			throw new QuadError("Erreur lors de la lecture de la valeur maximale");
 
-		bands= new RasterBand[numBands];
-		for (int i= 0; i < numBands; i++) {
-			bands[i]= new RasterBand(height, width, values);
+		channels= new RasterChannel[numChannels];
+		for (int i= 0; i < numChannels; i++) {
+			channels[i]= new RasterChannel(height, width, values);
 		}
 	}
 
@@ -160,22 +161,22 @@ public class Raster {
 		outPS.flush();
 	}
 
-	public RasterBand getBand(int i) {
-		if (i < numBands)
-			return bands[i];
+	public RasterChannel getBand(int i) {
+		if (i < numChannels)
+			return channels[i];
 		throw new QuadError("Impossible de récupérer la composante " + i);
 	}
 
-	public int getNumBands() {
-		return numBands;
+	public int getNumChannels() {
+		return numChannels;
 	}
 
 	public Raster toRgb() {
-		if (numBands == 1) {
+		if (numChannels == 1) {
 			throw new QuadError("Conversion impossible pour une image en niveaux de gris");
 		}
 
-		Raster rasterRgb= new Raster(height, width, values, numBands);
+		Raster rasterRgb= new Raster(height, width, values, numChannels);
 		double lumR= .299;
 		double lumG= .587;
 		double lumB= .114;
@@ -217,11 +218,11 @@ public class Raster {
 	}
 
 	public Raster toYcbcr() {
-		if (numBands == 1) {
+		if (numChannels == 1) {
 			throw new QuadError("Conversion impossible pour une image en niveaux de gris");
 		}
 
-		Raster rasterYcbcr= new Raster(height, width, values, numBands);
+		Raster rasterYcbcr= new Raster(height, width, values, numChannels);
 		double lumR= .299;
 		double lumG= .587;
 		double lumB= .114;

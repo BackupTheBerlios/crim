@@ -24,8 +24,8 @@ public class Main {
 
 		for (int i= 0; i < imagePathTab.length; i++) {
 			String path= imagePathTab[i];
-			String name= "CatLogo";
-			String size= "128";
+			String name= "Clown";
+			String size= "256";
 			String ext= ".ppm";
 			if (!path.endsWith(ext)
 				|| !path.matches("^(.*)" + name + "(.*)\\." + size + "\\.(.*)$"))
@@ -38,35 +38,41 @@ public class Main {
 
 				System.out.println("\tCompression");
 
-				System.out.print("\t\tChargement PGM : ");
-				System.out.flush();
+				System.out.println("\t\tChargement PGM...");
 				image= new QuadImage(project + "/images/" + path);
-				System.out.println("Ok");
+				System.out.println("\t\tChargement PGM Ok");
 
-				System.out.print("\t\tCompression du quadtree : ");
-				System.out.flush();
+				System.out.println("\t\tCompression du quadtree...");
 				image.compress(.0001, 8, 1);
 				image.compress(.0001, 8, 2);
-				System.out.println("Ok");
+				System.out.println("\t\tCompression du quadtree Ok");
 
-				System.out.print("\t\tSauvegarde QGM : ");
-				System.out.flush();
+				System.out.println("\t\tSauvegarde HGM...");
+				image.save(project + "/out/" + path + ".hgm");
+				System.out.println("\t\tSauvegarde HGM Ok");
+
+				System.out.println("\t\tSauvegarde QGM...");
 				image.save(project + "/out/" + path + ".qgm");
-				System.out.println("Ok");
+				System.out.println("\t\tSauvegarde HGM Ok");
 
 				System.out.println("\tDécompression");
 
-				System.out.print("\t\tChargement QGM : ");
-				System.out.flush();
-				image= new QuadImage(project + "/out/" + path + ".qgm");
-				System.out.println("Ok");
+				System.out.println("\t\tChargement HGM...");
+				image= new QuadImage(project + "/out/" + path + ".hgm");
+				System.out.println("\t\tChargement HGM Ok");
 
-				System.out.print("\t\tSauvegarde PGM : ");
-				System.out.flush();
+				System.out.println("\t\tSauvegarde PGM...");
+				image.save(project + "/out2/" + path + ".hgm.pgm");
+				System.out.println("\t\tSauvegarde PGM Ok");
+
+				System.out.println("\t\tChargement QGM...");
+				image= new QuadImage(project + "/out/" + path + ".qgm");
+				System.out.println("\t\tChargement HGM Ok");
+
+				System.out.println("\t\tSauvegarde PGM...");
 				image.save(project + "/out2/" + path + ".qgm.pgm");
-				System.out.println("Ok");
+				System.out.println("\t\tSauvegarde PGM Ok");
 			} catch (Exception e) {
-				System.out.println();
 				e.printStackTrace();
 			}
 		}

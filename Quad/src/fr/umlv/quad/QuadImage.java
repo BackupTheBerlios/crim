@@ -3,6 +3,7 @@
  */
 package fr.umlv.quad;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -11,6 +12,9 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.StreamTokenizer;
 
+import fr.umlv.quad.huffman.Decoder;
+import fr.umlv.quad.huffman.Encoder;
+
 /**
  * @author cpele
  */
@@ -18,11 +22,11 @@ public class QuadImage {
 	public final static int RGB= 0;
 	public final static int YCBCR= 1;
 
-	private QuadImageBand bands[];
-	private int numBands;
+	private QuadImageChannel channels[];
+	private int numChannels;
 	private int colorspace= YCBCR;
-	
-	public QuadImage(String path) throws IOException {
+
+	public QuadImage(String path) throws IOException, ClassNotFoundException {
 		if (path.matches("^(.*)\\.(pgm|ppm)$")) {
 			Raster rasterRgb= new Raster(path);
 			Raster raster;
@@ -34,17 +38,13 @@ public class QuadImage {
 			else
 				throw new QuadError("Espace de couleurs inconnu");
 
-			numBands= raster.getNumBands();
-			bands= new QuadImageBand[numBands];
-			for (int i= 0; i < numBands; i++) {
-				bands[i]= new QuadImageBand(raster.getBand(i));
+			numChannels= raster.getNumChannels();
+			channels= new QuadImageChannel[numChannels];
+			for (int i= 0; i < numChannels; i++) {
+				channels[i]= new QuadImageChannel(raster.getBand(i));
 			}
 		} else if (path.matches("^(.*)\\.(qgm|qpm)$")) {
-			FileInputStream inputStream= new FileInputStream(path);
-
-			loadQgmHeader(inputStream);
-			for (int i= 0; i < numBands; i++)
-				bands[i].loadQgmData(inputStream);
+			loadQgm(path);
 		} else if (path.matches("^(.*)\\.(hgm|hpm)$")) {
 			loadHuffman(path);
 		} else {
@@ -55,6 +55,14 @@ public class QuadImage {
 	/*-------------------------------------------------------------*/
 	/*-- Gestion des fichiers QGM ---------------------------------*/
 	/*-------------------------------------------------------------*/
+
+	private void loadQgm(String path) throws IOException {
+		FileInputStream inputStream= new FileInputStream(path);
+
+		loadQgmHeader(inputStream);
+		for (int i= 0; i < numChannels; i++)
+			channels[i].loadQgmData(inputStream);
+	}
 
 	/**
 	 * Chargement de l'en-tête du fichier QGM
@@ -70,16 +78,16 @@ public class QuadImage {
 			typeStr= tokenizer.sval;
 
 			if (typeStr.equals("Q1")) {
-				numBands= 1;
-				bands= new QuadImageBand[1];
+				numChannels= 1;
+				channels= new QuadImageChannel[1];
 				colorspace= RGB;
 			} else if (typeStr.equals("Q2")) {
-				numBands= 3;
-				bands= new QuadImageBand[3];
+				numChannels= 3;
+				channels= new QuadImageChannel[3];
 				colorspace= RGB;
 			} else if (typeStr.equals("Q3")) {
-				numBands= 3;
-				bands= new QuadImageBand[3];
+				numChannels= 3;
+				channels= new QuadImageChannel[3];
 				colorspace= YCBCR;
 			} else {
 				throw new QuadError("Type inconnu: " + typeStr);
@@ -88,9 +96,9 @@ public class QuadImage {
 			throw new QuadError("Erreur lors de la lecture du type QGM");
 
 		/* Lecture des paramètres de chaque composante */
-		for (int i= 0; i < numBands; i++) {
-			QuadImageBand quad= new QuadImageBand();
-			bands[i]= quad;
+		for (int i= 0; i < numChannels; i++) {
+			QuadImageChannel quad= new QuadImageChannel();
+			channels[i]= quad;
 
 			/* Lecture du nombre de niveaux */
 			ttype= tokenizer.nextToken();
@@ -121,7 +129,7 @@ public class QuadImage {
 		}
 	}
 
-	public void save(String path) throws FileNotFoundException {
+	public void save(String path) throws IOException {
 		if (path.matches("^(.*)\\.(pgm|ppm)$")) {
 			savePortableMap(path);
 		} else if (path.matches("^(.*)\\.(qgm|qpm)$")) {
@@ -133,12 +141,12 @@ public class QuadImage {
 	}
 
 	private void savePortableMap(String path) throws FileNotFoundException {
-		RasterBand[] rasterBands= new RasterBand[numBands];
-		for (int i= 0; i < numBands; i++) {
-			rasterBands[i]= bands[i].toRasterBand();
+		RasterChannel[] rasterChannels= new RasterChannel[numChannels];
+		for (int i= 0; i < numChannels; i++) {
+			rasterChannels[i]= channels[i].toRasterChannel();
 		}
 
-		Raster raster= new Raster(rasterBands);
+		Raster raster= new Raster(rasterChannels);
 		Raster rasterRgb;
 		if (colorspace == RGB)
 			rasterRgb= raster;
@@ -153,9 +161,9 @@ public class QuadImage {
 	public void saveQuadMap(String path) throws FileNotFoundException {
 		PrintStream out= new PrintStream(new FileOutputStream(path));
 
-		if (numBands == 1) {
+		if (numChannels == 1) {
 			out.println("Q1");
-		} else if (numBands == 3) {
+		} else if (numChannels == 3) {
 			if (colorspace == RGB)
 				out.println("Q2");
 			else if (colorspace == YCBCR)
@@ -165,29 +173,29 @@ public class QuadImage {
 		} else
 			throw new QuadError("Quoi ?! On ne devrait pas arriver là ! C'est un bug !");
 
-		for (int i= 0; i < numBands; i++) {
-			int numLevels= bands[i].getNumLevels();
-			int maxValue= bands[i].getMaxValue();
-			int ucode= bands[i].getUcode();
+		for (int i= 0; i < numChannels; i++) {
+			int numLevels= channels[i].getNumLevels();
+			int maxValue= channels[i].getMaxValue();
+			int ucode= channels[i].getUcode();
 			out.println(numLevels + " " + maxValue + " " + ucode);
 		}
-		for (int i= 0; i < numBands; i++) {
-			bands[i].saveQgmData(out);
+		for (int i= 0; i < numChannels; i++) {
+			channels[i].saveQgmData(out);
 		}
 	}
 
 	public void compress(double dev, double factor) {
-		for (int i= 0; i < numBands; i++) {
+		for (int i= 0; i < numChannels; i++) {
 			compress(dev, factor, i);
 		}
 	}
 
 	public void compress(double dev, double factor, int band) {
-		bands[band].compress(dev, factor);
+		channels[band].compress(dev, factor);
 	}
 
 	public void compress(double dev[], double factor[]) {
-		for (int i= 0; i < numBands; i++) {
+		for (int i= 0; i < numChannels; i++) {
 			compress(dev[i], factor[i], i);
 		}
 	}
@@ -196,14 +204,27 @@ public class QuadImage {
 	/*-- Gestion des fichiers codés avec l'algo de huffman ----------*/
 	/*---------------------------------------------------------------*/
 
-	private void loadHuffman(String path) {
-		// TODO Auto-generated method stub
-		
+	private void loadHuffman(String path)
+		throws IOException, ClassNotFoundException {
+		String baseName=new File(path).getName();
+		File tmpQgmFile= File.createTempFile(baseName, ".qgm");
+		String tmpQgm= tmpQgmFile.getCanonicalPath();
+
+		Decoder decoder= new Decoder(path, tmpQgm);
+		decoder.decode();
+		loadQgm(tmpQgm);
+		tmpQgmFile.delete();
 	}
 
-	private void saveHuffman(String path) {
-		// TODO Auto-generated method stub
-		
+	private void saveHuffman(String path) throws IOException {
+		String baseName=new File(path).getName();
+		File tmpQgmFile= File.createTempFile(baseName, ".qgm");
+		String tmpQgm= tmpQgmFile.getCanonicalPath();
+
+		saveQuadMap(tmpQgm);
+		Encoder encoder= new Encoder(tmpQgm, path);
+		encoder.encode();
+		tmpQgmFile.delete();
 	}
 
 }

@@ -19,13 +19,13 @@ import java.util.List;
  *
  * Image en niveaux de gris représentée par un quadtree hiérarchique
  */
-public class QuadImageBand {
-	public QuadImageBand() {
+public class QuadImageChannel {
+	public QuadImageChannel() {
 		numLevels= maxValue= ucode= 0;
 		quadRoot= null;
 	}
 
-	public QuadImageBand(RasterBand raster) throws IOException {
+	public QuadImageChannel(RasterChannel raster) throws IOException {
 		ucode= raster.ucode();
 
 		int width= raster.width();
@@ -51,7 +51,7 @@ public class QuadImageBand {
 	private int ucode;
 	private QuadNode quadRoot;
 
-	public RasterBand toRasterBand() {
+	public RasterChannel toRasterChannel() {
 		int height= (int)Math.pow(2, numLevels-1);
 		int width= height;
 		int values= 255;
