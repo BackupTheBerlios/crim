@@ -1,18 +1,8 @@
 /*
- * Created on 15 mars 2004
+ * Created on 4 avr. 2004
  */
 package fr.umlv.quad;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.io.StreamTokenizer;
 import java.util.Arrays;
 
 /**
@@ -22,7 +12,7 @@ public class RasterBand {
 	private int width;
 	private int height;
 	private int values;
-	private int[] array;
+	private double[] array;
 
 	/**
 	 * Création d'un raster vide
@@ -34,7 +24,7 @@ public class RasterBand {
 		this.width= width;
 		this.height= height;
 		this.values= values;
-		array= new int[width * height];
+		array= new double[width * height];
 	}
 
 	/**
@@ -44,15 +34,15 @@ public class RasterBand {
 	 * @param values
 	 * @param intArray
 	 */
-	public RasterBand(int height, int width, int values, int[] intArray) {
+	public RasterBand(int height, int width, int values, double[] array) {
 		this(height, width, values);
-		load(intArray);
+		load(array);
 	}
 
 	/**
 	 * Création d'un raster à partir d'une valeur par défaut
 	 */
-	public RasterBand(int height, int width, int values, int defaultValue) {
+	public RasterBand(int height, int width, int values, double defaultValue) {
 		this(height, width, values);
 		Arrays.fill(array, defaultValue);
 	}
@@ -61,19 +51,8 @@ public class RasterBand {
 	 * Chargement de valeurs dans le raster
 	 * @param intArray
 	 */
-	public void load(int[] intArray) {
-		System.arraycopy(intArray, 0, this.array, 0, this.array.length);
-	}
-
-	public void loadPgmData(InputStream in) throws IOException {
-		for (int i= 0; i < height; i++) {
-			for (int j= 0; j < width; j++) {
-				int value= in.read();
-				if (value == -1)
-					throw new QuadError("Fin de fichier inattendue");
-				pixel(i, j, value);
-			}
-		}
+	public void load(double[] array) {
+		System.arraycopy(array, 0, this.array, 0, this.array.length);
 	}
 
 	/**
@@ -92,7 +71,7 @@ public class RasterBand {
 		checkDimensions(topLeft, topRight, bottomLeft, bottomRight);
 		for (int i= 0; i < topLeft.height; i++) {
 			for (int j= 0; j < topLeft.width; j++) {
-				int value= topLeft.pixel(i, j);
+				double value= topLeft.pixel(i, j);
 				pixel(i, j, value);
 
 				value= topRight.pixel(i, j);
@@ -161,16 +140,13 @@ public class RasterBand {
 	public void width(int i) {
 		width= i;
 	}
-	public int[] getArray() {
-		return array;
-	}
 
 	/*-- Gestion des pixels ---------------------------------------*/
 
 	/**
 	 * Récupération de la valeur d'un pixel
 	 */
-	public int pixel(int line, int column) {
+	public double pixel(int line, int column) {
 		checkPixelCoords(line, column);
 		return array[line * width + column];
 	}
@@ -181,7 +157,7 @@ public class RasterBand {
 	 * @param column
 	 * @param value
 	 */
-	public void pixel(int line, int column, int value) {
+	public void pixel(int line, int column, double value) {
 		checkPixelCoords(line, column);
 		array[line * width + column]= value;
 	}
@@ -279,7 +255,7 @@ public class RasterBand {
 
 		for (int i= lineOffset; i < height + lineOffset; i++) {
 			for (int j= columnOffset; j < width + columnOffset; j++) {
-				int value= this.pixel(i, j);
+				double value= this.pixel(i, j);
 				subRaster.pixel(i - lineOffset, j - columnOffset, value);
 			}
 		}
@@ -295,7 +271,7 @@ public class RasterBand {
 		int[] histo= new int[values + 1];
 		Arrays.fill(histo, 0);
 		for (int i= 0; i < array.length; i++) {
-			histo[array[i]]++;
+			histo[(int)array[i]]++;
 		}
 
 		/* Calcul de la couleur ucode ayant le moins d'occurences dans 

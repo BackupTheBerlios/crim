@@ -18,7 +18,7 @@ public class QuadNode {
 	public static final short BOTTOMRIGHT= 3;
 
 	private boolean plain;
-	private int value;
+	private double value;
 	private short level;
 	private double stddev;
 	private short location;
@@ -180,20 +180,29 @@ public class QuadNode {
 		return new RasterBand(
 			topLeftChild.toRasterBand(subRasterHeight, subRasterWidth, values),
 			topRightChild.toRasterBand(subRasterHeight, subRasterWidth, values),
-			bottomLeftChild.toRasterBand(subRasterHeight, subRasterWidth, values),
-			bottomRightChild.toRasterBand(subRasterHeight, subRasterWidth, values));
+			bottomLeftChild.toRasterBand(
+				subRasterHeight,
+				subRasterWidth,
+				values),
+			bottomRightChild.toRasterBand(
+				subRasterHeight,
+				subRasterWidth,
+				values));
 	}
 
 	public void compress(double currentDev, double factor) {
-		if (stddev < currentDev) {
+		if (currentDev <= 0 || factor <= 0)
+			throw new QuadError("Paramètres de compression incorrects");
+
+		if (plain || stddev < currentDev) {
 			plain= true;
 			return;
 		}
 		double nextDev= currentDev * factor;
-		topLeftChild.compress(nextDev, factor);
-		topRightChild.compress(nextDev, factor);
-		bottomLeftChild.compress(nextDev, factor);
-		bottomRightChild.compress(nextDev, factor);
+		if (topLeftChild!=null) topLeftChild.compress(nextDev, factor);
+		if (topLeftChild!=null) topRightChild.compress(nextDev, factor);
+		if (topLeftChild!=null) bottomLeftChild.compress(nextDev, factor);
+		if (topLeftChild!=null) bottomRightChild.compress(nextDev, factor);
 	}
 
 	/*-- Getters & setters -----------------------------------------*/
@@ -222,7 +231,7 @@ public class QuadNode {
 		return !plain;
 	}
 
-	public int getValue() {
+	public double getValue() {
 		return value;
 	}
 
@@ -242,7 +251,7 @@ public class QuadNode {
 		topRightChild= element;
 	}
 
-	public void setValue(int b) {
+	public void setValue(double b) {
 		value= b;
 	}
 

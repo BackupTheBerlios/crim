@@ -27,14 +27,26 @@ public class Raster {
 		values= rasterBands[0].values();
 	}
 
+	public Raster(int height, int width, int values, int numBands) {
+		this.height= height;
+		this.width= width;
+		this.values= values;
+		this.numBands= numBands;
+
+		bands= new RasterBand[numBands];
+		for (int i= 0; i < numBands; i++) {
+			bands[i]= new RasterBand(height, width, values);
+		}
+	}
+
 	public Raster(String path) throws IOException {
 		if (path.matches("^(.*)\\.(pgm|ppm)$")) {
 			FileInputStream in= new FileInputStream(path);
 			loadPgmHeader(in);
 
-				for (int j= 0; j < height; j++) {
-					for (int k= 0; k < width; k++) {
-						for (int i= 0; i < numBands; i++) {
+			for (int j= 0; j < height; j++) {
+				for (int k= 0; k < width; k++) {
+					for (int i= 0; i < numBands; i++) {
 						int value= in.read();
 						if (value == -1)
 							throw new QuadError(
@@ -68,17 +80,17 @@ public class Raster {
 		for (int i= 0; i < height; i++) {
 			for (int j= 0; j < width; j++) {
 				for (int k= 0; k < numBands; k++) {
-					out.write(pixel(i, j, k));
+					out.write((int)pixel(i, j, k));
 				}
 			}
 		}
 	}
 
-	private int pixel(int line, int column, int band) {
+	private double pixel(int line, int column, int band) {
 		return bands[band].pixel(line, column);
 	}
 
-	private void pixel(int line, int column, int band, int value) {
+	private void pixel(int line, int column, int band, double value) {
 		bands[band].pixel(line, column, value);
 	}
 
@@ -99,10 +111,8 @@ public class Raster {
 			throw new QuadError("Erreur lors de la lecture du type PGM");
 		if (typeStr.equals("P5")) {
 			numBands= 1;
-			bands= new RasterBand[1];
 		} else if (typeStr.equals("P6")) {
 			numBands= 3;
-			bands= new RasterBand[3];
 		} else {
 			throw new QuadError("Type de fichier inconnu: " + typeStr);
 		}
@@ -128,6 +138,7 @@ public class Raster {
 		else
 			throw new QuadError("Erreur lors de la lecture de la valeur maximale");
 
+		bands= new RasterBand[numBands];
 		for (int i= 0; i < numBands; i++) {
 			bands[i]= new RasterBand(height, width, values);
 		}
@@ -157,6 +168,80 @@ public class Raster {
 
 	public int getNumBands() {
 		return numBands;
+	}
+
+	public Raster toRgb() {
+		if (numBands == 1) {
+			throw new QuadError("Conversion impossible pour une image en niveaux de gris");
+		}
+
+		Raster rasterRgb= new Raster(height, width, values, numBands);
+		double lumR= .299;
+		double lumG= .587;
+		double lumB= .114;
+
+		for (int i= 0; i < height; i++) {
+			for (int j= 0; j < width; j++) {
+				double Y= pixel(i, j, 0);
+				double Cb= pixel(i, j, 1);
+				double Cr= pixel(i, j, 2);
+
+				double R= Y + (Cr - 128) * (2 - 2 * lumR);
+				double B= Y + (Cb - 128) * (2 - 2 * lumB);
+				double G= (Y - lumB * B - lumR * R) / lumG;
+
+				R= Math.rint(R);
+				if (R < 0)
+					R= 0;
+				if (R > 255)
+					R= 255;
+
+				G= Math.rint(G);
+				if (G < 0)
+					G= 0;
+				if (G > 255)
+					G= 255;
+
+				B= Math.rint(B);
+				if (B < 0)
+					B= 0;
+				if (B > 255)
+					B= 255;
+
+				rasterRgb.pixel(i, j, 0, R);
+				rasterRgb.pixel(i, j, 1, G);
+				rasterRgb.pixel(i, j, 2, B);
+			}
+		}
+		return rasterRgb;
+	}
+
+	public Raster toYcbcr() {
+		if (numBands == 1) {
+			throw new QuadError("Conversion impossible pour une image en niveaux de gris");
+		}
+
+		Raster rasterYcbcr= new Raster(height, width, values, numBands);
+		double lumR= .299;
+		double lumG= .587;
+		double lumB= .114;
+
+		for (int i= 0; i < height; i++) {
+			for (int j= 0; j < width; j++) {
+				double R= pixel(i, j, 0);
+				double G= pixel(i, j, 1);
+				double B= pixel(i, j, 2);
+
+				double Y= lumR * R + lumG * G + lumB * B;
+				double Cb= (B - Y) / (2 - 2 * lumB) + 128;
+				double Cr= (R - Y) / (2 - 2 * lumR) + 128;
+
+				rasterYcbcr.pixel(i, j, 0, Y);
+				rasterYcbcr.pixel(i, j, 1, Cb);
+				rasterYcbcr.pixel(i, j, 2, Cr);
+			}
+		}
+		return rasterYcbcr;
 	}
 
 }

@@ -23,17 +23,14 @@ public class Main {
 
 		for (int i= 0; i < imagePathTab.length; i++) {
 			String path= imagePathTab[i];
-			String name= "";
-			int size= 512;
+			String name= "Clown";
+			int size= 256;
 			String ext= ".ppm";
 			if (!path.endsWith(ext)
 				|| !path.matches("^(.*)" + name + "(.*)\\." + size + "\\.(.*)$"))
 				continue;
 
 			System.out.println("Traitement de " + path);
-
-			//			Raster r= new Raster("images/" + path);
-			//			r.save("out2/" + path + ".ppm");
 
 			try {
 				QuadImage image;
@@ -47,7 +44,8 @@ public class Main {
 
 				System.out.print("\t\tCompression du quadtree : ");
 				System.out.flush();
-				image.compress(.0001, 8);
+				image.compress(.0001, 8, 1);
+				image.compress(.0001, 8, 2);
 				System.out.println("Ok");
 
 				System.out.print("\t\tSauvegarde QGM : ");

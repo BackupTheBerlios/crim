@@ -141,9 +141,9 @@ public class QuadImageBand {
 		}
 	}
 
-	public static void write(PrintStream out, int value) {
+	public static void write(PrintStream out, double value) {
 		//		out.print("" + value + " ");
-		out.write(value);
+		out.write((int)value);
 	}
 
 	/**
@@ -160,7 +160,7 @@ public class QuadImageBand {
 		while (!fifou.isEmpty()) {
 			QuadNode n= (QuadNode)fifou.remove(0);
 
-			int value= n.getValue();
+			double value= n.getValue();
 			int level= n.getLevel();
 			boolean plain= n.isPlain();
 			short location= n.getLocation();
