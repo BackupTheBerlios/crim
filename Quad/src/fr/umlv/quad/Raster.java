@@ -26,7 +26,7 @@ public class Raster {
 	private final String path;
 
 	/**
-	 * Cr�ation d'un raster vide
+	 * Création d'un raster vide
 	 * @param width
 	 * @param height
 	 * @param values
@@ -40,7 +40,7 @@ public class Raster {
 	}
 
 	/**
-	 * Cr�ation d'un raster � partir d'un tableau de valeurs
+	 * Création d'un raster à partir d'un tableau de valeurs
 	 * @param width
 	 * @param height
 	 * @param values
@@ -60,7 +60,7 @@ public class Raster {
 	}
 
 	/**
-	 * Chargement d'un raster � partir d'un fichier de n'importe quel type
+	 * Chargement d'un raster à partir d'un fichier
 	 * @param path
 	 * @throws NumberFormatException
 	 * @throws IOException
@@ -80,9 +80,9 @@ public class Raster {
 			System.out.print("	Nombre de valeurs : ");
 			int values= Integer.parseInt(inReader.readLine());
 
-			loadFromRaw(path);
+			loadRaw(path);
 		} else if (path.endsWith(".pgm")) {
-			loadFromPgm(path);
+			loadPgm(path);
 		} else {
 			throw new QuadError(path + ": Extension de fichier incorrecte");
 		}
@@ -129,7 +129,7 @@ public class Raster {
 	}
 
 	/**
-	 * Prédicat de comparaison des dimensions de deux rasters
+	 * Test d'égalité des dimensions de deux rasters
 	 * @param other
 	 * @return
 	 */
@@ -141,7 +141,7 @@ public class Raster {
 	}
 
 	/**
-	 * Vérification que les dimensions des sous-rasters correspondent à celles
+	 * Test de la validité des dimensions des sous-rasters par rapport à celles
 	 * du raster
 	 */
 	private void checkDimensions(
@@ -166,34 +166,31 @@ public class Raster {
 	 * Charge une image Pgm (n&b)
 	 * @param path : Chemin du fichier image
 	 */
-	private void loadFromPgm(String path)
+	private void loadPgm(String path)
 		throws FileNotFoundException, IOException {
 		FileInputStream inputStream= new FileInputStream(path);
 
-		loadHeaderFromPgm(inputStream);
+		loadPgmHeader(inputStream);
 		loadArray(inputStream);
 	}
 
 	/**
 	 * Charge une image brute
-	 * 
 	 * @param path : Nom du fichier image
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
-	private void loadFromRaw(String path)
+	private void loadRaw(String path)
 		throws FileNotFoundException, IOException {
 		loadArray(new FileInputStream(path));
 	}
 
 	/**
 	 * Charge l'en-tête d'une image pgm
-	 * 
 	 * @param inputStream : Le flux correspondant ? l'image
 	 * @throws IOException
 	 */
-	private void loadHeaderFromPgm(InputStream inputStream)
-		throws IOException {
+	private void loadPgmHeader(InputStream inputStream) throws IOException {
 		StreamTokenizer tokenizer= new StreamTokenizer(inputStream);
 
 		/* Lecture du type PGM */
@@ -232,7 +229,6 @@ public class Raster {
 
 	/**
 	 * Charge le contenu brut d'une image (raster)
-	 * 
 	 * @param inputStream : Flux correspondant à l'image
 	 * @throws FileNotFoundException
 	 * @throws IOException
@@ -284,7 +280,7 @@ public class Raster {
 	 */
 	public void save(String path) throws IOException {
 		if (path.endsWith(".pgm"))
-			saveAsPgm(path);
+			savePgm(path);
 		else
 			throw new QuadError("Type de fichier inconnu");
 	}
@@ -294,7 +290,7 @@ public class Raster {
 	 * @param path
 	 * @throws IOException
 	 */
-	private void saveAsPgm(String path) throws IOException {
+	private void savePgm(String path) throws IOException {
 		OutputStream out= new FileOutputStream(path);
 		PrintStream outPS= new PrintStream(out);
 		outPS.println("P5");
@@ -323,6 +319,9 @@ public class Raster {
 	}
 	public void width(int i) {
 		width= i;
+	}
+	public int[] getArray() {
+		return array;
 	}
 
 	/*-- Gestion des pixels ---------------------------------------*/
@@ -371,20 +370,10 @@ public class Raster {
 
 	/*-- Traitements -----------------------------------------------*/
 
-	public int numPixels() {
-		return array.length;
-	}
-
-	public double defaultValue(
-		int lineOffset,
-		int columnOffset,
-		int height,
-		int width) {
-		return mean(lineOffset, columnOffset, height, width);
-		//		return pixel(lineOffset, columnOffset);
-	}
-
-	private double mean(
+	/**
+	 * Calcul de la moyenne d'une partie de l'image
+	 */
+	public double mean(
 		int lineOffset,
 		int columnOffset,
 		int height,
@@ -413,7 +402,7 @@ public class Raster {
 		double mean= 0;
 		final int n= height * width;
 		if (n <= 1)
-			return Double.NaN;
+			throw new QuadError("Calcul de la variance impossible pour moins de deux valeurs");
 		for (int i= 0; i < height; i++) {
 			for (int j= 0; j < width; j++) {
 				mean += pixel(i + lineOffset, j + columnOffset);
@@ -432,14 +421,23 @@ public class Raster {
 		return Math.sqrt(sum / (n - 1));
 	}
 
-	public Raster subRaster(int lineOffset, int columnOffset) {
-		int width= this.width();
-		int height= this.height();
-		int values= this.values();
+	/**
+	 * Création d'un nouveau Raster correspondant à une partie de l'image
+	 * @param lineOffset
+	 * @param columnOffset
+	 * @param height
+	 * @param width
+	 * @return
+	 */
+	public Raster subRaster(
+		int lineOffset,
+		int columnOffset,
+		int height,
+		int width) {
+		Raster subRaster= new Raster(height, width, values);
 
-		Raster subRaster= new Raster(width / 2, height / 2, values);
-		for (int i= lineOffset; i < height / 2 + lineOffset; i++) {
-			for (int j= columnOffset; j < width / 2 + columnOffset; j++) {
+		for (int i= lineOffset; i < height + lineOffset; i++) {
+			for (int j= columnOffset; j < width + columnOffset; j++) {
 				int value= this.pixel(i, j);
 				subRaster.pixel(i - lineOffset, j - columnOffset, value);
 			}
@@ -447,35 +445,56 @@ public class Raster {
 		return subRaster;
 	}
 
-	public boolean isPlain(
+	/**
+	 * Test d'homogénéité d'une zone de l'image
+	 * @param lineOffset
+	 * @param columnOffset
+	 * @param height
+	 * @param width
+	 * @return : Vrai uniquement si la zone est constituée d'un seul pixel
+	 */
+	public boolean isPlainPixel(
 		int lineOffset,
 		int columnOffset,
 		int height,
-		int width) {
-		if (height * width <= 1)
-			return true;
-		double stddev= stddev(lineOffset, columnOffset, height, width);
-		if (stddev < 15)
+		int width)
+	{
+		if (height*width<=1)
 			return true;
 		return false;
 	}
+	
+	/**
+	 * Test d'homogénéité d'une zone de l'image
+	 * @param lineOffset
+	 * @param columnOffset
+	 * @param height
+	 * @param width
+	 * @return : Vrai si la variance des pixels de le zone est inférieure à 
+	 * une valeur
+	 */
+	public boolean isPlainStddev(
+		int lineOffset,
+		int columnOffset,
+		int height,
+		int width, 
+		double value) 
+	{
+		if (height * width <= 1)
+			return true;
 
-	public int max() {
-		int max= 0;
-		for (int i= 0; i < array.length; i++) {
-			max= Util.max(array[i], max);
-		}
-		return max;
+		double stddev= stddev(lineOffset, columnOffset, height, width);
+
+		if (stddev < value)
+			return true;
+		else
+			return false;
 	}
 
-	public int min() {
-		int min= values;
-		for (int i= 0; i < array.length; i++) {
-			min= Util.min(array[i], min);
-		}
-		return min;
-	}
-
+	/**
+	 * Calcul de la valeur la moins courante dans l'image
+	 * @return
+	 */
 	public int ucode() {
 		/* Calcul de l'histogramme (histo[i]='nombre de pixels de valeur i') */
 		int[] histo= new int[values + 1];
@@ -495,18 +514,5 @@ public class Raster {
 			}
 		}
 		return ucode;
-	}
-
-	public static void main(String[] args) throws IOException {
-		Raster r= new Raster("images/Boat.512.pgm");
-		r.save("out/image.pgm");
-		double stddev2= r.stddev(0, 0, r.height(), r.width());
-		double mean2= r.mean(0, 0, r.height(), r.width());
-		System.out.println("stddev(...): " + stddev2);
-		System.out.println("mean(...): " + mean2);
-	}
-
-	public int[] getArray() {
-		return array;
 	}
 }

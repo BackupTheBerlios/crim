@@ -7,10 +7,12 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.StreamTokenizer;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * @author Christophe Pelé
@@ -18,12 +20,10 @@ import java.util.Iterator;
  * Image en niveaux de gris représentée par un quadtree hiérarchique
  */
 public class QuadImage {
-	private int height;
-	private int width;
+	private int numLevels;
 	private int values;
 	private int ucode;
-	private QuadImageElement quadRoot;
-	private ArrayList levels;
+	private QuadNode quadRoot;
 	private final String path;
 
 	/**
@@ -35,71 +35,126 @@ public class QuadImage {
 		if (path.endsWith(".pgm")) {
 			loadPgm(path);
 		} else if (path.endsWith(".qgm")) {
-			loadQgm(path);
+			loadQgmAscii(path);
 		} else {
 			throw new QuadError(path + ": Format de fichier inconnu");
 		}
 	}
 
+	/**
+	 * Sauvegarde d'une image dans un fichier
+	 * @param path
+	 * @throws IOException
+	 */
+	public void save(String path) throws IOException {
+		/* Génération d'une image pgm */
+		if (path.endsWith(".pgm")) {
+			int width= (int)Math.sqrt((int)Math.pow(4, numLevels));
+			int height= width;
+
+			Raster r= quadRoot.toRaster(height, width, values);
+			r.save(path);
+		} else if (path.endsWith(".qgm")) {
+			saveQgmAscii(path);
+		} else {
+			throw new QuadError(path + ": Type de fichier inconnu");
+		}
+	}
+
+	/*-------------------------------------------------------------*/
+	/*-- Gestion des fichiers PGM ---------------------------------*/
+	/*-------------------------------------------------------------*/
+
+	/**
+	 * Chargement d'une image PGM
+	 */
 	private void loadPgm(String path)
 		throws NumberFormatException, IOException {
 		Raster raster= new Raster(path);
 		ucode= raster.ucode();
-		width= raster.width();
-		height= raster.height();
+
+		int width= raster.width();
+		int height= raster.height();
+
+		/* Calcul du nombre de niveaux dans le quadtree */
+		double numLevels= Util.log4(width * height) + 1;
+		if (width != height || numLevels != (int)numLevels)
+			throw new QuadError(
+				path
+					+ ": L'image doit être carrée et sa taille de la forme 2^n * 2^n");
+		this.numLevels= (int)numLevels;
+
 		values= raster.values();
-		quadRoot= new QuadImageElement();
-		initLevels();
-		buildQuadTree(quadRoot, 0, raster, 0, 0, height, width);
+		quadRoot= new QuadNode(raster, 0, 0, height, width);
 	}
 
-	private void loadQgm(String path) throws IOException {
+	/*-------------------------------------------------------------*/
+	/*-- Gestion des fichiers QGM ---------------------------------*/
+	/*-------------------------------------------------------------*/
+
+	/**
+	 * Chargement d'une image QGM ASCII (Q2)
+	 */
+	private void loadQgmAscii(String path) throws IOException {
 		FileInputStream inputStream= new FileInputStream(path);
-		loadQgmHeader(inputStream);
-		initLevels();
-		loadQgmLevels(inputStream);
-		buildQuadTreeFromLevels();
+		loadQgmHeaderAscii(inputStream);
+		loadQgmDataAscii(inputStream);
 	}
 
-	private void buildQuadTreeFromLevels() {
+	/**
+	 * Lecture de la prochaine valeur depuis un fichier
+	 * @param tokenizer : Le tokenizer correspondant au fichier
+	 * @return : La valeur lue ou bien -1 en cas de fin de fichier
+	 * @throws IOException
+	 */
+	private int nextValue(StreamTokenizer tokenizer) throws IOException {
+		tokenizer.nextToken();
+		if (tokenizer.ttype == tokenizer.TT_NUMBER) {
+			return (int)tokenizer.nval;
+		} else if (tokenizer.ttype == tokenizer.TT_EOF) {
+			return -1;
+		} else
+			throw new QuadError(path + ": Format du fichier incorrect");
 	}
 
-	private void initLevels() {
-		levels= new ArrayList();
-		int numLevels= (int)Util.log2(width * height);
-		for (int i= 0; i < numLevels; i++) {
-			levels.add(new ArrayList());
-		}
-	}
-
-	private void loadQgmLevels(FileInputStream inputStream) throws IOException {
+	/**
+	 * Lecture des données d'une image QGM au format ASCII (Q2)
+	 * @param inputStream
+	 * @throws IOException
+	 */
+	private void loadQgmDataAscii(InputStream inputStream)
+	throws IOException {
 		StreamTokenizer tokenizer= new StreamTokenizer(inputStream);
-		int levelNum= 0;
+		List fifou= new ArrayList();
+		quadRoot=new QuadNode();
+		fifou.add(quadRoot);
 
-		while (tokenizer.ttype != tokenizer.TT_EOF) {
-			ArrayList level= (ArrayList)levels.get(levelNum);
-			int ttype= tokenizer.nextToken();
+		while (!fifou.isEmpty()) {
+			QuadNode n= (QuadNode)fifou.remove(0);
 
-			if (ttype == tokenizer.TT_NUMBER) {
-				QuadImageElement qie= new QuadImageElement();
-				int value= (int)tokenizer.nval;
-
-				if (value == ucode) {
-					qie.setValue(-1);
-					qie.setPlain(false);
-				} else {
-					qie.setValue(value);
-					qie.setPlain(true);
-				}
-				level.add(qie);
-			} else
-				throw new QuadError("Erreur lors de la lecture d'un fichier QGM");
+			int value= nextValue(tokenizer);
+			if (value == ucode) {
+				value=nextValue(tokenizer);
+				n.setValue(value);
+				n.setPlain(true);
+			} else {
+				n.setValue(value);
+				n.setPlain(false);
 				
-			levelNum++;
+				n.setTopLeftChild(new QuadNode());
+				n.setTopRightChild(new QuadNode());
+				n.setBottomRightChild(new QuadNode());
+				n.setBottomLeftChild(new QuadNode());
+				
+				fifou.add(n.getTopLeftChild());
+				fifou.add(n.getTopRightChild());
+				fifou.add(n.getBottomRightChild());
+				fifou.add(n.getBottomLeftChild());
+			}
 		}
 	}
 
-	private void loadQgmHeader(FileInputStream inputStream)
+	private void loadQgmHeaderAscii(FileInputStream inputStream)
 		throws IOException {
 		StreamTokenizer tokenizer= new StreamTokenizer(inputStream);
 
@@ -112,21 +167,12 @@ public class QuadImage {
 			throw new QuadError(
 				path + ": Erreur lors de la lecture du type QGM");
 
-		/* Lecture de la largeur */
+		/* Lecture du nombre de niveaux */
 		ttype= tokenizer.nextToken();
 		if (ttype == tokenizer.TT_NUMBER)
-			width= (int)tokenizer.nval;
+			numLevels= (int)tokenizer.nval;
 		else
-			throw new QuadError(
-				path + ": Erreur lors de la lecture de la largeur");
-
-		/* Lecture de la hauteur */
-		ttype= tokenizer.nextToken();
-		if (ttype == tokenizer.TT_NUMBER)
-			height= (int)tokenizer.nval;
-		else
-			throw new QuadError(
-				path + ": Erreur lors de la lecture de la hauteur");
+			throw new QuadError(path + ": Erreur lors du nombre de niveaux");
 
 		/* Lecture du nombre de valeurs */
 		ttype= tokenizer.nextToken();
@@ -145,144 +191,30 @@ public class QuadImage {
 				path + ": Erreur lors de la lecture du marqueur ucode");
 	}
 
-	/** 
-	 * Création du quadtree à partir du raster qui a été chargé
-	 */
-	private void buildQuadTree(
-		QuadImageElement currentQIE,
-		int levelNum,
-		Raster raster,
-		int currentLineOffset,
-		int currentColumnOffset,
-		int currentHeight,
-		int currentWidth)
-		throws IOException {
-		ArrayList level= (ArrayList)levels.get(levelNum);
-		level.add(currentQIE);
-
-		/* Condition d'arrêt de la récursion */
-		if (raster
-			.isPlain(
-				currentLineOffset,
-				currentColumnOffset,
-				currentHeight,
-				currentWidth)) {
-			currentQIE.setValue(
-				(int)raster.defaultValue(
-					currentLineOffset,
-					currentColumnOffset,
-					currentHeight,
-					currentWidth));
-			currentQIE.setPlain(true);
-			return;
-		} else {
-			currentQIE.setValue(-1);
-			currentQIE.setPlain(false);
-		}
-
-		/*-- Appels récursifs ------------------------------------------*/
-
-		currentQIE.setTopLeft(new QuadImageElement());
-		currentQIE.setTopRight(new QuadImageElement());
-		currentQIE.setBottomLeft(new QuadImageElement());
-		currentQIE.setBottomRight(new QuadImageElement());
-
-		/* Appel récursif (quart supérieur gauche) */
-		int topLeftLineOffset= currentLineOffset;
-		int topLeftColumnOffset= currentColumnOffset;
-		int topLeftHeight= currentHeight / 2;
-		int topLeftWidth= currentWidth / 2;
-		buildQuadTree(
-			currentQIE.getTopLeft(),
-			levelNum + 1,
-			raster,
-			topLeftLineOffset,
-			topLeftColumnOffset,
-			topLeftHeight,
-			topLeftWidth);
-
-		/* Appel récursif (quart supérieur droit) */
-		int topRightLineOffset= currentLineOffset;
-		int topRightColumnOffset= currentColumnOffset + currentWidth / 2;
-		int topRightHeight= currentHeight / 2;
-		int topRightWidth= currentWidth / 2;
-		buildQuadTree(
-			currentQIE.getTopRight(),
-			levelNum + 1,
-			raster,
-			topRightLineOffset,
-			topRightColumnOffset,
-			topRightHeight,
-			topRightWidth);
-
-		/* Appel récursif (quart inférieur gauche) */
-		int bottomLeftLineOffset= currentLineOffset + currentHeight / 2;
-		int bottomLeftColumnOffset= currentColumnOffset;
-		int bottomLeftHeight= currentHeight / 2;
-		int bottomLeftWidth= currentWidth / 2;
-		buildQuadTree(
-			currentQIE.getBottomLeft(),
-			levelNum + 1,
-			raster,
-			bottomLeftLineOffset,
-			bottomLeftColumnOffset,
-			bottomLeftHeight,
-			bottomLeftWidth);
-
-		/* Appel récursif (quart inférieur droit) */
-		int bottomRightLineOffset= currentLineOffset + currentHeight / 2;
-		int bottomRightColumnOffset= currentColumnOffset + currentWidth / 2;
-		int bottomRightHeight= currentHeight / 2;
-		int bottomRightWidth= currentWidth / 2;
-		buildQuadTree(
-			currentQIE.getBottomRight(),
-			levelNum + 1,
-			raster,
-			bottomRightLineOffset,
-			bottomRightColumnOffset,
-			bottomRightHeight,
-			bottomRightWidth);
-	}
-
-	public void save(String path) throws IOException {
-		/* Génération d'une image pgm */
-		if (path.endsWith(".pgm")) {
-			Raster r= quadRoot.toRaster(height, width, values);
-			r.save(path);
-		} else if (path.endsWith(".qgm")) {
-			saveCompressedAscii(path);
-		} else {
-			throw new QuadError(path + ": Type de fichier inconnu");
-		}
-	}
-
-	private void saveCompressedAscii(String path)
-		throws FileNotFoundException {
+	private void saveQgmAscii(String path) throws FileNotFoundException {
 		PrintStream out= new PrintStream(new FileOutputStream(path));
 		out.println("Q2");
-		out.println(height + " " + width + " " + values + " " + ucode);
+		out.println(numLevels + " " + values + " " + ucode);
 
-		Iterator i= levels.iterator();
-		while (i.hasNext()) {
-			ArrayList level= (ArrayList)i.next();
-			Iterator j= level.iterator();
-			while (j.hasNext()) {
-				QuadImageElement current= (QuadImageElement)j.next();
-				int value= current.getValue();
+		List fifou= new ArrayList();
+		fifou.add(quadRoot);
 
-				if (current.isPlain()) {
-					out.print(ucode);
-					out.print(" ");
-				}
+		while (!fifou.isEmpty()) {
+			QuadNode n= (QuadNode)fifou.remove(0);
 
-				if (value == ucode)
-					out.print(value + 1);
-				else
-					out.print(value);
-				if (j.hasNext())
-					out.print(" ");
+			int value= n.getValue();
+			if (value == ucode)
+				value++;
+
+			if (n.isPlain()) {
+				out.print("" + ucode + " " + value + " ");
+			} else {
+				out.print("" + value + " ");
+				fifou.add(n.getTopLeftChild());
+				fifou.add(n.getTopRightChild());
+				fifou.add(n.getBottomRightChild());
+				fifou.add(n.getBottomLeftChild());
 			}
-			out.println();
 		}
 	}
 }

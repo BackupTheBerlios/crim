@@ -9,6 +9,8 @@ import java.io.File;
  * @author cpele
  */
 public class Util {
+	private static double log4=Math.log(4.);
+	
 	public static int min(int b1, int b2) {
 		return (b1 < b2) ? b1 : b2;
 	}
@@ -23,7 +25,7 @@ public class Util {
 		boolean ok= fileDir.mkdirs();
 	}
 
-	public static double log2(int i) {
-		return (Math.log(i)/Math.log(2));
+	public static double log4(double i) {
+		return (Math.log(i)/log4);
 	}
 }
