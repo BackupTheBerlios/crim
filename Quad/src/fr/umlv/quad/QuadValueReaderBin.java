@@ -11,10 +11,10 @@ import java.util.List;
 /**
  * @author cpele
  */
-public class QuadTokenizerBinGray extends QuadTokenizer {
+public class QuadValueReaderBin extends QuadValueReader {
 	private InputStream in;
 
-	public QuadTokenizerBinGray(InputStream in, int ucode) {
+	public QuadValueReaderBin(InputStream in, int ucode) {
 		super(ucode);
 		this.in= in;
 	}

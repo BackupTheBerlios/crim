@@ -62,8 +62,8 @@ public class QuadImageBand {
 		return (n.getLevel() == numLevels - 1);
 	}
 
-	QuadTokenizer makeTokenizer(InputStream in) {
-		return new QuadTokenizerBinGray(in, ucode);
+	QuadValueReader makeTokenizer(InputStream in) {
+		return new QuadValueReaderBin(in, ucode);
 	}
 
 	/**
@@ -72,7 +72,7 @@ public class QuadImageBand {
 	 * @throws IOException
 	 */
 	void loadQgmData(InputStream inputStream) throws IOException {
-		QuadTokenizer tokenizer= makeTokenizer(inputStream);
+		QuadValueReader tokenizer= makeTokenizer(inputStream);
 
 		/* Utilisation d'une file pour le parcours en largeur */
 		List fifou= new ArrayList();
@@ -81,34 +81,32 @@ public class QuadImageBand {
 
 		while (!fifou.isEmpty()) {
 			QuadNode currentNode= (QuadNode)fifou.remove(0);
-			int value;
-			boolean plain;
 			int levelFlag;
 
 			/* Utilisation d'un flag qui indique si le noeud est une feuille
 			 * (correspond à un pixel) ou un noeud interne.
 			 */
 			if (belongsToLastLevel(currentNode))
-				levelFlag= QuadTokenizer.LEAF;
+				levelFlag= QuadValueReader.LEAF;
 			else
-				levelFlag= QuadTokenizer.INTERNAL;
+				levelFlag= QuadValueReader.INTERNAL;
 
 			/* Le noeud est il homogène et quelle est sa valeur ? */
 			QuadValue qv;
 			switch (currentNode.getLocation()) {
 				case QuadNode.TOPLEFT :
-					qv= tokenizer.next(levelFlag, QuadTokenizer.FIRST);
+					qv= tokenizer.next(levelFlag, QuadValueReader.FIRST);
 					currentNode.setPlain(qv.plain);
 					break;
 
 				case QuadNode.BOTTOMLEFT :
-					qv= tokenizer.next(levelFlag, QuadTokenizer.LAST);
+					qv= tokenizer.next(levelFlag, QuadValueReader.LAST);
 					currentNode.setValue(qv.value);
 					currentNode.setPlain(qv.plain);
 					break;
 
 				default :
-					qv= tokenizer.next(levelFlag, QuadTokenizer.NORMAL);
+					qv= tokenizer.next(levelFlag, QuadValueReader.NORMAL);
 					currentNode.setValue(qv.value);
 					currentNode.setPlain(qv.plain);
 					break;
@@ -143,7 +141,7 @@ public class QuadImageBand {
 		}
 	}
 
-	void write(PrintStream out, int value) {
+	public static void write(PrintStream out, int value) {
 		//		out.print("" + value + " ");
 		out.write(value);
 	}

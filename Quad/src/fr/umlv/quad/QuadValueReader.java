@@ -9,7 +9,7 @@ import java.util.ArrayList;
 /**
  * @author cpele
  */
-public abstract class QuadTokenizer {
+public abstract class QuadValueReader {
 	public static final int INTERNAL= 0;
 	public static final int LEAF= 1;
 
@@ -22,7 +22,7 @@ public abstract class QuadTokenizer {
 	private int ucode;
 	protected ArrayList buffer;
 
-	public QuadTokenizer(int ucode) {
+	public QuadValueReader(int ucode) {
 		this.ucode= ucode;
 		buffer= new ArrayList();
 	}
@@ -56,7 +56,7 @@ public abstract class QuadTokenizer {
 						throw new QuadError("On ne devrait pas arriver ici, c'est une saleté de bug !");
 				}
 
-				/* Feuille (pixel) */
+			/* Feuille (pixel) */
 			case LEAF :
 				switch (locationFlag) {
 					case FIRST :
