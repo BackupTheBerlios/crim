@@ -4,9 +4,6 @@
 package fr.umlv.quad;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.StreamTokenizer;
-import java.util.Arrays;
 
 /**
  * @author cpele
@@ -26,7 +23,7 @@ public class QuadNode {
 	}
 
 	/** 
-	 * Création du quadtree à partir de la région d'un raster
+	 * Création récursive du quadtree à partir de la région d'un raster
 	 * @param raster : Le raster
 	 * @param currentLineOffset : Ligne où débute la région
 	 * @param currentColumnOffset : Colonne où débute la région
@@ -43,12 +40,18 @@ public class QuadNode {
 		throws IOException {
 		/* Condition d'arrêt de la récursion : la région du raster considérée 
 		 * est homogène */
+//		 if (raster
+//			 .isPlainPixel(
+//				 currentLineOffset,
+//				 currentColumnOffset,
+//				 currentHeight,
+//				 currentWidth)) {
 		if (raster
-			.isPlainPixel(
+			.isPlainStddev(
 				currentLineOffset,
 				currentColumnOffset,
 				currentHeight,
-				currentWidth)) {
+				currentWidth, 15)) {
 			this.setValue(
 				(int)raster.mean(
 					currentLineOffset,
@@ -110,19 +113,17 @@ public class QuadNode {
 	 */
 	public Raster toRaster(int height, int width, int values) {
 		if (plain == true) {
-			int[] array= new int[height * width];
-			Arrays.fill(array, value);
-			return new Raster(height, width, values, array);
+			return new Raster(height, width, values, this.value);
 		}
-		Raster raster=
-			new Raster(
-				topLeftChild.toRaster(height / 2, width / 2, values),
-				topRightChild.toRaster(height / 2, width / 2, values),
-				bottomLeftChild.toRaster(height / 2, width / 2, values),
-				bottomRightChild.toRaster(height / 2, width / 2, values));
-		return raster;
+		int subRasterHeight= height / 2;
+		int subRasterWidth= width / 2;
+		return new Raster(
+			topLeftChild.toRaster(subRasterHeight, subRasterWidth, values),
+			topRightChild.toRaster(subRasterHeight, subRasterWidth, values),
+			bottomLeftChild.toRaster(subRasterHeight, subRasterWidth, values),
+			bottomRightChild.toRaster(subRasterHeight, subRasterWidth, values));
 	}
-	
+
 	/*-- Getters & setters -----------------------------------------*/
 
 	public QuadNode getBottomLeftChild() {

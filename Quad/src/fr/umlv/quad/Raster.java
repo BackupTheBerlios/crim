@@ -52,6 +52,14 @@ public class Raster {
 	}
 
 	/**
+	 * Création d'un raster à partir d'une valeur par défaut
+	 */
+	public Raster(int width, int height, int values, int defaultValue) {
+		this(width, height, values);
+		Arrays.fill(array, defaultValue);
+	}
+
+	/**
 	 * Chargement de valeurs dans le raster
 	 * @param intArray
 	 */

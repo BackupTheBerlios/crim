@@ -11,7 +11,6 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.StreamTokenizer;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -21,7 +20,7 @@ import java.util.List;
  */
 public class QuadImage {
 	private int numLevels;
-	private int values;
+	private int maxValue;
 	private int ucode;
 	private QuadNode quadRoot;
 	private final String path;
@@ -49,11 +48,7 @@ public class QuadImage {
 	public void save(String path) throws IOException {
 		/* Génération d'une image pgm */
 		if (path.endsWith(".pgm")) {
-			int width= (int)Math.sqrt((int)Math.pow(4, numLevels));
-			int height= width;
-
-			Raster r= quadRoot.toRaster(height, width, values);
-			r.save(path);
+			savePgm(path);
 		} else if (path.endsWith(".qgm")) {
 			saveQgmAscii(path);
 		} else {
@@ -64,6 +59,13 @@ public class QuadImage {
 	/*-------------------------------------------------------------*/
 	/*-- Gestion des fichiers PGM ---------------------------------*/
 	/*-------------------------------------------------------------*/
+
+	private void savePgm(String path) throws IOException {
+		int width= (int)Math.sqrt(Math.pow(4, numLevels));
+		int height= width;
+		Raster r= quadRoot.toRaster(height, width, maxValue);
+		r.save(path);
+	}
 
 	/**
 	 * Chargement d'une image PGM
@@ -77,14 +79,19 @@ public class QuadImage {
 		int height= raster.height();
 
 		/* Calcul du nombre de niveaux dans le quadtree */
-		double numLevels= Util.log4(width * height) + 1;
+		double numLevels= Util.log4(width * height);
+
+		/* Erreur si l'image n'est pas carrée ou si sa taille n'est pas de la 
+		 * forme 2^n * 2^n
+		 */
 		if (width != height || numLevels != (int)numLevels)
 			throw new QuadError(
 				path
 					+ ": L'image doit être carrée et sa taille de la forme 2^n * 2^n");
+
 		this.numLevels= (int)numLevels;
 
-		values= raster.values();
+		maxValue= raster.values();
 		quadRoot= new QuadNode(raster, 0, 0, height, width);
 	}
 
@@ -118,42 +125,8 @@ public class QuadImage {
 	}
 
 	/**
-	 * Lecture des données d'une image QGM au format ASCII (Q2)
-	 * @param inputStream
-	 * @throws IOException
+	 * Chargement de l'en-tête du fichier QGM
 	 */
-	private void loadQgmDataAscii(InputStream inputStream)
-	throws IOException {
-		StreamTokenizer tokenizer= new StreamTokenizer(inputStream);
-		List fifou= new ArrayList();
-		quadRoot=new QuadNode();
-		fifou.add(quadRoot);
-
-		while (!fifou.isEmpty()) {
-			QuadNode n= (QuadNode)fifou.remove(0);
-
-			int value= nextValue(tokenizer);
-			if (value == ucode) {
-				value=nextValue(tokenizer);
-				n.setValue(value);
-				n.setPlain(true);
-			} else {
-				n.setValue(value);
-				n.setPlain(false);
-				
-				n.setTopLeftChild(new QuadNode());
-				n.setTopRightChild(new QuadNode());
-				n.setBottomRightChild(new QuadNode());
-				n.setBottomLeftChild(new QuadNode());
-				
-				fifou.add(n.getTopLeftChild());
-				fifou.add(n.getTopRightChild());
-				fifou.add(n.getBottomRightChild());
-				fifou.add(n.getBottomLeftChild());
-			}
-		}
-	}
-
 	private void loadQgmHeaderAscii(FileInputStream inputStream)
 		throws IOException {
 		StreamTokenizer tokenizer= new StreamTokenizer(inputStream);
@@ -177,7 +150,7 @@ public class QuadImage {
 		/* Lecture du nombre de valeurs */
 		ttype= tokenizer.nextToken();
 		if (ttype == tokenizer.TT_NUMBER)
-			values= (int)tokenizer.nval;
+			maxValue= (int)tokenizer.nval;
 		else
 			throw new QuadError(
 				path + ": Erreur lors de la lecture de la valeur maximale");
@@ -191,10 +164,51 @@ public class QuadImage {
 				path + ": Erreur lors de la lecture du marqueur ucode");
 	}
 
+	/**
+	 * Lecture des données d'une image QGM au format ASCII
+	 * @param inputStream
+	 * @throws IOException
+	 */
+	private void loadQgmDataAscii(InputStream inputStream) throws IOException {
+		StreamTokenizer tokenizer= new StreamTokenizer(inputStream);
+		List fifou= new ArrayList();
+		quadRoot= new QuadNode();
+		fifou.add(quadRoot);
+
+		while (!fifou.isEmpty()) {
+			QuadNode n= (QuadNode)fifou.remove(0);
+
+			int value= nextValue(tokenizer);
+			if (value == ucode) {
+				value= nextValue(tokenizer);
+				n.setValue(value);
+				n.setPlain(true);
+			} else {
+				n.setValue(value);
+				n.setPlain(false);
+
+				n.setTopLeftChild(new QuadNode());
+				n.setTopRightChild(new QuadNode());
+				n.setBottomRightChild(new QuadNode());
+				n.setBottomLeftChild(new QuadNode());
+
+				fifou.add(n.getTopLeftChild());
+				fifou.add(n.getTopRightChild());
+				fifou.add(n.getBottomRightChild());
+				fifou.add(n.getBottomLeftChild());
+			}
+		}
+	}
+
+	/**
+	 * Sauvegarde du quadtree au format QGM Ascii
+	 * Attention : le marqueur ucode est écrit _avant_ l'écriture de la
+	 * valeur d'un noeud uniforme
+	 */
 	private void saveQgmAscii(String path) throws FileNotFoundException {
 		PrintStream out= new PrintStream(new FileOutputStream(path));
-		out.println("Q2");
-		out.println(numLevels + " " + values + " " + ucode);
+		out.println("Q3");
+		out.println(numLevels + " " + maxValue + " " + ucode);
 
 		List fifou= new ArrayList();
 		fifou.add(quadRoot);
