@@ -112,7 +112,10 @@ public class Raster {
 		Raster bottomLeft,
 		Raster bottomRight) {
 		boolean ok=
-			(topLeft.hasSameDimensions(topRight)
+			(values == topLeft.values
+				&& height == topLeft.height * 2
+				&& width == topLeft.width * 2
+				&& topLeft.hasSameDimensions(topRight)
 				&& topLeft.hasSameDimensions(bottomLeft)
 				&& topLeft.hasSameDimensions(bottomRight));
 		if (!ok)
@@ -179,6 +182,7 @@ public class Raster {
 
 	/**
 	 * Charge le contenu brut d'une image (raster)
+	 * Les octets sont codÃ©s en big endiant (Java et stations de travail)
 	 * 
 	 * @param inputStream : Flux correspondant ? l'image
 	 * @throws FileNotFoundException
@@ -251,44 +255,34 @@ public class Raster {
 
 		if (line >= height || line < 0) {
 			msgBuf.append(
-				"Impossible d'aller à la ligne demandée (" + line + ")");
+				"Impossible d'aller ï¿½ la ligne demandï¿½e (" + line + ")");
 			ok= false;
 		}
 		if (column >= width || column < 0) {
 			msgBuf.append(
-				"\nImpossible d'aller à la colonne demandée (" + column + ")");
+				"\nImpossible d'aller ï¿½ la colonne demandï¿½e (" + column + ")");
 			ok= false;
 		}
 		if (!ok)
 			throw new QuadError(msgBuf.toString());
 	}
 
+	/*-- Traitement de l'image (marche pas) ------------------------*/
+
 	public int numPixels() {
 		return byteArray.length;
 	}
 
-	public byte defaultValue() {
-		return mean();
-	}
-
-	private byte mean() {
-		double mean= 0;
-		int numPixels= numPixels();
-		for (int i= 0; i < numPixels; i++) {
-			mean += byteArray[i];
-		}
-		mean /= numPixels;
-		return (byte)mean;
-	}
-	public byte defaultValue(
+	public double defaultValue(
 		int lineOffset,
 		int columnOffset,
 		int height,
 		int width) {
 		return mean(lineOffset, columnOffset, height, width);
+		//		return pixel(lineOffset,columnOffset)-256;
 	}
 
-	private byte mean(
+	private double mean(
 		int lineOffset,
 		int columnOffset,
 		int height,
@@ -300,7 +294,40 @@ public class Raster {
 			}
 		}
 		mean /= height * width;
-		return (byte)mean;
+		return mean;
+	}
+
+	/**
+	 * Calcul de la variance dans une partie de l'image
+	 */
+	private double stddev(
+		int lineOffset,
+		int columnOffset,
+		int height,
+		int width) {
+		//	   sd is sqrt of sum of (values-mean) squared divided by n - 1
+
+		//	   Calculate the mean
+		double mean= 0;
+		final int n= height * width;
+		if (n < 2)
+			return Double.NaN;
+		for (int i= 0; i < height; i++) {
+			for (int j= 0; j < width; j++) {
+				mean += pixel(i + lineOffset, j + columnOffset);
+			}
+		}
+		mean /= n;
+
+		//	   calculate the sum of squares
+		double sum= 0;
+		for (int i= 0; i < height; i++) {
+			for (int j= 0; j < width; j++) {
+				final double v= pixel(i + lineOffset, j + columnOffset) - mean;
+				sum += v * v;
+			}
+		}
+		return Math.sqrt(sum / (n - 1));
 	}
 
 	public Raster subRaster(int lineOffset, int columnOffset) {
@@ -316,5 +343,46 @@ public class Raster {
 			}
 		}
 		return subRaster;
+	}
+
+	public boolean isUni(
+		int lineOffset,
+		int columnOffset,
+		int height,
+		int width) {
+		return stddev(lineOffset, columnOffset, height, width) < 50;
+	}
+
+	private byte max(byte b1, byte b2) {
+		return (b1 > b2) ? b1 : b2;
+	}
+
+	private byte min(byte b1, byte b2) {
+		return (b1 < b2) ? b1 : b2;
+	}
+
+	public byte max() {
+		byte max= Byte.MIN_VALUE;
+		for (int i= 0; i < byteArray.length; i++) {
+			max= max(byteArray[i], max);
+		}
+		return max;
+	}
+
+	public byte min() {
+		byte min= Byte.MAX_VALUE;
+		for (int i= 0; i < byteArray.length; i++) {
+			min= min(byteArray[i], min);
+		}
+		return min;
+	}
+
+	public static void main(String[] args) throws IOException {
+		Raster r= new Raster("images/galaxie.1024.pgm");
+		r.save("out/image.pgm");
+		double stddev2= r.stddev(0, 0, r.height(), r.width());
+		double mean2= r.mean(0, 0, r.height(), r.width());
+		System.out.println("stddev(...): " + stddev2);
+		System.out.println("mean(...): " + mean2);
 	}
 }

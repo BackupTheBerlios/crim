@@ -3,6 +3,8 @@
  */
 package fr.umlv.quad;
 
+import java.util.Arrays;
+
 /**
  * @author cpele
  * 
@@ -13,6 +15,8 @@ public class QuadImageElement {
 	private double variance;
 	private boolean uni;
 	private int id;
+	private int width;
+	private int height;
 
 	static int sid= 0;
 
@@ -26,8 +30,11 @@ public class QuadImageElement {
 	QuadImageElement bottomRight;
 
 	public Raster toRaster() {
-		if (uni==true)
-			return new Raster(1,1,255,new byte[]{value});
+		if (uni==true) {
+			byte[] byteArray=new byte[height*width];
+			Arrays.fill(byteArray,value);
+			return new Raster(height,width,255,byteArray);
+		}
 		Raster raster=
 			new Raster(
 				topLeft.toRaster(),
@@ -94,6 +101,22 @@ public class QuadImageElement {
 
 	public void setVariance(double d) {
 		variance= d;
+	}
+
+	public int getHeight() {
+		return height;
+	}
+
+	public int getWidth() {
+		return width;
+	}
+
+	public void setHeight(int i) {
+		height= i;
+	}
+
+	public void setWidth(int i) {
+		width= i;
 	}
 
 }

@@ -14,4 +14,6 @@ public class Util {
 		File fileDir= filePath.getParentFile();
 		boolean ok= fileDir.mkdirs();
 	}
+	
+	public static int btoi(byte b) {return 256+b;}
 }

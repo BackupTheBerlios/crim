@@ -16,6 +16,7 @@ import java.io.PrintStream;
 public class QuadImage {
 	private QuadImageElement quadRoot;
 	private int n= 0;
+	private int pixels= 0;
 
 	/**
 	 * Cr?ation d'une image ? partir d'un fichier sur le disque
@@ -25,17 +26,20 @@ public class QuadImage {
 		Raster raster= new Raster(path);
 		int width= raster.width();
 		int height= raster.height();
+		pixels= width * height;
 		n= 0;
 		quadRoot= new QuadImageElement();
+		System.out.print("Construction du quadtree: ");
+		System.out.flush();
 		buildQuadTreeWithOffsets(quadRoot, raster, 0, 0, height, width);
-	}
+		System.out.println();
 
-	private double log2(double d) {
-		return Math.log(d) / Math.log(2);
 	}
 
 	/** 
 	 * Cr?ation du quadtree ? partir du raster qui a ?t? charg?
+	 * 1�re m�thode : le raster reste le m�me et on indique les coordonn�es 
+	 * du sous-raster pour l'appel r�cursif
 	 */
 	private void buildQuadTreeWithOffsets(
 		QuadImageElement currentQIE,
@@ -44,15 +48,26 @@ public class QuadImage {
 		int currentColumnOffset,
 		int currentHeight,
 		int currentWidth)
-	throws IOException {
+		throws IOException {
 		int values= raster.values();
 
+		/* Condition d'arr�t de la r�cursion */
+//		if (raster
+//			.isUni(
+//				currentLineOffset,
+//				currentColumnOffset,
+//				currentHeight,
+//				currentWidth)) 
+//		{
 		if (currentWidth <= 1 || currentHeight <= 1) {
+			/* Progression du traitement */
 			n++;
-			if (n % 50000 == 0)
-				System.out.println(n);
+			if (n % (pixels / 60) == 0) {
+				System.out.print('#');
+				System.out.flush();
+			}
 
-			currentQIE.setValue(
+			currentQIE.setValue((byte)
 				raster.defaultValue(
 					currentLineOffset,
 					currentColumnOffset,
@@ -60,19 +75,25 @@ public class QuadImage {
 					currentWidth));
 			currentQIE.setUni(true);
 			currentQIE.setVariance(0);
-
+			currentQIE.setHeight(currentHeight);
+			currentQIE.setWidth(currentWidth);
 			return;
 		} else {
 			currentQIE.setValue((byte)0);
 			currentQIE.setUni(false);
 			currentQIE.setVariance(0);
+			currentQIE.setHeight(currentHeight);
+			currentQIE.setWidth(currentWidth);
 		}
+
+		/*-- Appels r�cursifs ------------------------------------------*/
 
 		currentQIE.topLeft= new QuadImageElement();
 		currentQIE.topRight= new QuadImageElement();
 		currentQIE.bottomLeft= new QuadImageElement();
 		currentQIE.bottomRight= new QuadImageElement();
 
+		/* Appel r�cursif (quart sup�rieur gauche) */
 		int topLeftLineOffset= currentLineOffset;
 		int topLeftColumnOffset= currentColumnOffset;
 		int topLeftHeight= currentHeight / 2;
@@ -85,6 +106,7 @@ public class QuadImage {
 			topLeftHeight,
 			topLeftWidth);
 
+		/* Appel r�cursif (quart sup�rieur droit) */
 		int topRightLineOffset= currentLineOffset;
 		int topRightColumnOffset= currentColumnOffset + currentWidth / 2;
 		int topRightHeight= currentHeight / 2;
@@ -97,6 +119,7 @@ public class QuadImage {
 			topRightHeight,
 			topRightWidth);
 
+		/* Appel r�cursif (quart inf�rieur gauche) */
 		int bottomLeftLineOffset= currentLineOffset + currentHeight / 2;
 		int bottomLeftColumnOffset= currentColumnOffset;
 		int bottomLeftHeight= currentHeight / 2;
@@ -109,6 +132,7 @@ public class QuadImage {
 			bottomLeftHeight,
 			bottomLeftWidth);
 
+		/* Appel r�cursif (quart inf�rieur droit) */
 		int bottomRightLineOffset= currentLineOffset + currentHeight / 2;
 		int bottomRightColumnOffset= currentColumnOffset + currentWidth / 2;
 		int bottomRightHeight= currentHeight / 2;
@@ -122,81 +146,13 @@ public class QuadImage {
 			bottomRightWidth);
 	}
 
-	/** 
-	 * Cr?ation du quadtree ? partir du raster qui a ?t? charg?
-	 */
-	private void buildQuadTreeWithSubRasters(
-		QuadImageElement currentQIE,
-		Raster currentRaster)
-		throws IOException {
-		currentQIE.setValue(currentRaster.defaultValue());
-		currentQIE.setUni(false);
-		currentQIE.setVariance(0);
-
-		int width= currentRaster.width();
-		int height= currentRaster.height();
-		int values= currentRaster.values();
-
-		if (currentRaster.numPixels() <= 1) {
-			n++;
-			if (n % 50000 == 0)
-				System.out.println(n);
-			return;
-		}
-
-		Raster topLeftRaster= currentRaster.subRaster(0, 0);
-		Raster topRightRaster= currentRaster.subRaster(0, width / 2);
-		Raster bottomRightRaster=
-			currentRaster.subRaster(height / 2, width / 2);
-		Raster bottomLeftRaster= currentRaster.subRaster(height / 2, 0);
-
-		currentQIE.topLeft= new QuadImageElement();
-		currentQIE.topRight= new QuadImageElement();
-		currentQIE.bottomLeft= new QuadImageElement();
-		currentQIE.bottomRight= new QuadImageElement();
-		buildQuadTreeWithSubRasters(currentQIE.topLeft, topLeftRaster);
-		buildQuadTreeWithSubRasters(currentQIE.bottomLeft, bottomLeftRaster);
-		buildQuadTreeWithSubRasters(currentQIE.topRight, topRightRaster);
-		buildQuadTreeWithSubRasters(currentQIE.bottomRight, bottomRightRaster);
-	}
-
 	public void save(String path) throws IOException {
-		if (path.endsWith(".dot")) {
-			Util.makeDir(path);
-			FileOutputStream outOS= new FileOutputStream(path);
-			PrintStream out= new PrintStream(outOS);
-			out.println("digraph shells {");
-			out.println("node [fontsize=20, shape = box];");
-			exportToDotRec(quadRoot, out);
-			out.println("}");
-		} else if (path.endsWith(".pgm")) {
+		/* G�n�ration d'une image pgm */
+		if (path.endsWith(".pgm")) {
 			Raster r= quadRoot.toRaster();
 			r.save(path);
 		} else {
 			throw new QuadError(path + ": Type de fichier inconnu");
-		}
-	}
-
-	private void exportToDotRec(
-		QuadImageElement quadElement,
-		PrintStream out) {
-		if (quadElement.bottomLeft != null) {
-			out.println(
-				"" + quadElement.getId() + " -> " + quadElement.getBottomLeft().getId());
-			exportToDotRec(quadElement.bottomLeft, out);
-		}
-		if (quadElement.bottomRight != null) {
-			out.println(
-				"" + quadElement.getId() + " -> " + quadElement.getBottomRight().getId());
-			exportToDotRec(quadElement.bottomRight, out);
-		}
-		if (quadElement.topLeft != null) {
-			out.println("" + quadElement.getId() + " -> " + quadElement.getTopLeft().getId());
-			exportToDotRec(quadElement.topLeft, out);
-		}
-		if (quadElement.topRight != null) {
-			out.println("" + quadElement.getId() + " -> " + quadElement.getTopRight().getId());
-			exportToDotRec(quadElement.topRight, out);
 		}
 	}
 }
