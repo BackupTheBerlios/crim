@@ -20,7 +20,10 @@ public class Main {
 	public static void main(String[] args)
 	throws FileNotFoundException,IOException
 	{
+		System.out.print("Chargement de l'image: ");
+		System.out.flush();
 		QuadImage image=new QuadImage("images/galaxie.1024.pgm");
+		System.out.println("Ok");
 //		QuadImage image=new QuadImage("images/Boat.512.pgm");
 //		QuadImage image=new QuadImage("images/Boat.64.pgm");
 //		QuadImage image=new QuadImage("images/Boat.16.pgm");

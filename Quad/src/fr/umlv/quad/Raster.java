@@ -25,7 +25,7 @@ public class Raster {
 	private int[] array;
 
 	/**
-	 * Création d'un raster vide
+	 * Crï¿½ation d'un raster vide
 	 * @param width
 	 * @param height
 	 * @param values
@@ -38,7 +38,7 @@ public class Raster {
 	}
 
 	/**
-	 * Création d'un raster à partir d'un tableau de valeurs
+	 * Crï¿½ation d'un raster ï¿½ partir d'un tableau de valeurs
 	 * @param width
 	 * @param height
 	 * @param values
@@ -58,7 +58,7 @@ public class Raster {
 	}
 
 	/**
-	 * Chargement d'un raster à partir d'un fichier de n'importe quel type
+	 * Chargement d'un raster ï¿½ partir d'un fichier de n'importe quel type
 	 * @param path
 	 * @throws NumberFormatException
 	 * @throws IOException
@@ -85,7 +85,7 @@ public class Raster {
 	}
 
 	/**
-	 * Création d'un raster à partir de quatre sous-rasters
+	 * Crï¿½ation d'un raster ï¿½ partir de quatre sous-rasters
 	 * @param topLeft
 	 * @param topRight
 	 * @param bottomLeft
@@ -125,7 +125,7 @@ public class Raster {
 	}
 
 	/**
-	 * Prédicat de comparaison des dimensions de deux rasters
+	 * Prï¿½dicat de comparaison des dimensions de deux rasters
 	 * @param other
 	 * @return
 	 */
@@ -137,7 +137,7 @@ public class Raster {
 	}
 
 	/**
-	 * Vérification que les dimensions des sous-rasters correspondent à celles
+	 * Vï¿½rification que les dimensions des sous-rasters correspondent ï¿½ celles
 	 * du raster
 	 */
 	private void checkDimensions(
@@ -312,7 +312,7 @@ public class Raster {
 	/*-- Gestion des pixels ---------------------------------------*/
 
 	/**
-	 * Récupération de la valeur d'un pixel
+	 * Rï¿½cupï¿½ration de la valeur d'un pixel
 	 */
 	public int pixel(int line, int column) {
 		checkPixelCoords(line, column);
@@ -320,7 +320,7 @@ public class Raster {
 	}
 
 	/**
-	 * Mise à jour de la valeur d'un pixel
+	 * Mise ï¿½ jour de la valeur d'un pixel
 	 * @param line
 	 * @param column
 	 * @param value
@@ -331,7 +331,7 @@ public class Raster {
 	}
 
 	/**
-	 * Vérifie la validité des coordonnées d'un pixel
+	 * Vï¿½rifie la validitï¿½ des coordonnï¿½es d'un pixel
 	 * @param line
 	 * @param column
 	 */
@@ -478,5 +478,9 @@ public class Raster {
 		double mean2= r.mean(0, 0, r.height(), r.width());
 		System.out.println("stddev(...): " + stddev2);
 		System.out.println("mean(...): " + mean2);
+	}
+
+	public int[] getArray() {
+		return array;
 	}
 }

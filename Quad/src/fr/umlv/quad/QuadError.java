@@ -7,7 +7,7 @@ package fr.umlv.quad;
 /**
  * @author cpele
  *
- * Exception lev?e quand on tente de charger une image de type inconnu
+ * Exception levée quand on tente de charger une image de type inconnu
  */
 public class QuadError extends RuntimeException {
 	private Exception internalError;
