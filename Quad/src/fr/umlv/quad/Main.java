@@ -10,8 +10,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 
-import sun.awt.image.ImageDecoder;
-
 /**
  * @author cpele
  *
@@ -25,36 +23,49 @@ public class Main {
 
 		for (int i= 0; i < imagePathTab.length; i++) {
 			String path= imagePathTab[i];
-			if (!path.endsWith(".pgm") || !path.matches("^.*512.*$"))
+			String name= "";
+			int size= 256;
+			if (!path.endsWith(".pgm")
+				|| !path.matches("^(.*)" + name + "(.*)\\." + size + "\\.(.*)$"))
 				continue;
 
 			System.out.println("Traitement de " + path);
 
-			QuadImage image;
+			try {
+				QuadImage image;
 
-			System.out.println("\tCompression");
+				System.out.println("\tCompression");
 
-			System.out.print("\t\tChargement PGM : ");
-			System.out.flush();
-			image= new QuadImage("images/" + path);
-			System.out.println("Ok");
+				System.out.print("\t\tChargement PGM : ");
+				System.out.flush();
+				image= new QuadImage("images/" + path);
+				System.out.println("Ok");
 
-			System.out.print("\t\tSauvegarde QGM : ");
-			System.out.flush();
-			image.saveCompressed("out/" + path + ".qgm", 10);
-			System.out.println("Ok");
+				System.out.print("\t\tCompression du quadtree : ");
+				System.out.flush();
+				image.compress(.0001, 15);
+				System.out.println("Ok");
 
-			System.out.println("\tDécompression");
+				System.out.print("\t\tSauvegarde QGM : ");
+				System.out.flush();
+				image.save("out/" + path + ".qgm");
+				System.out.println("Ok");
 
-			System.out.print("\t\tChargement QGM : ");
-			System.out.flush();
-			image= new QuadImage("out/" + path + ".qgm");
-			System.out.println("Ok");
-			
-			System.out.print("\t\tSauvegarde PGM : ");
-			System.out.flush();
-			image.save("out2/" + path + ".qgm.pgm");
-			System.out.println("Ok");
+				System.out.println("\tDécompression");
+
+				System.out.print("\t\tChargement QGM : ");
+				System.out.flush();
+				image= new QuadImage("out/" + path + ".qgm");
+				System.out.println("Ok");
+
+				System.out.print("\t\tSauvegarde PGM : ");
+				System.out.flush();
+				image.save("out2/" + path + ".qgm.pgm");
+				System.out.println("Ok");
+			} catch (QuadError e) {
+				System.out.println();
+				e.printStackTrace();
+			}
 		}
 	}
 }

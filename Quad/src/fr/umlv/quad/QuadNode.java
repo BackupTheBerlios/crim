@@ -11,7 +11,7 @@ import java.io.IOException;
  * Elément d'une QuadImage (pixel de l'image ou noeud de l'arbre)
  */
 public class QuadNode {
-	public static final short ROOT=-1;
+	public static final short ROOT= -1;
 	public static final short TOPLEFT= 0;
 	public static final short TOPRIGHT= 1;
 	public static final short BOTTOMLEFT= 2;
@@ -66,8 +66,8 @@ public class QuadNode {
 
 		int childRasterHeight= currentHeight / 2;
 		int childRasterWidth= currentWidth / 2;
-		int bottomOffset=currentLineOffset + currentHeight / 2;
-		int rightOffset=currentColumnOffset + currentWidth / 2;
+		int bottomOffset= currentLineOffset + currentHeight / 2;
+		int rightOffset= currentColumnOffset + currentWidth / 2;
 
 		short nextLevel= (short) (level + 1);
 
@@ -184,6 +184,18 @@ public class QuadNode {
 			bottomRightChild.toRaster(subRasterHeight, subRasterWidth, values));
 	}
 
+	public void compress(double currentDev, double factor) {
+		if (stddev < currentDev) {
+			plain= true;
+			return;
+		}
+		double nextDev= currentDev * factor;
+		topLeftChild.compress(nextDev, factor);
+		topRightChild.compress(nextDev, factor);
+		bottomLeftChild.compress(nextDev, factor);
+		bottomRightChild.compress(nextDev, factor);
+	}
+
 	/*-- Getters & setters -----------------------------------------*/
 
 	public QuadNode getBottomLeftChild() {
@@ -204,6 +216,10 @@ public class QuadNode {
 
 	public boolean isPlain() {
 		return plain;
+	}
+
+	public boolean isNotPlain() {
+		return !plain;
 	}
 
 	public int getValue() {

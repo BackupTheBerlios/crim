@@ -49,15 +49,10 @@ public class QuadImage {
 		if (path.endsWith(".pgm")) {
 			exportPgm(path);
 		} else if (path.endsWith(".qgm")) {
-			saveQgm(path, 0);
+			saveQgm(path);
 		} else {
 			throw new QuadError(path + ": Type de fichier inconnu");
 		}
-	}
-
-	public void saveCompressed(String path, int stddev)
-		throws FileNotFoundException {
-		saveQgm(path, stddev);
 	}
 
 	/*-------------------------------------------------------------*/
@@ -97,7 +92,7 @@ public class QuadImage {
 
 		maxValue= raster.values();
 		quadRoot=
-			new QuadNode(raster, 0, 0, height, width, 0, QuadNode.TOPLEFT);
+			new QuadNode(raster, 0, 0, height, width, 0, QuadNode.ROOT);
 	}
 
 	/*-------------------------------------------------------------*/
@@ -154,13 +149,17 @@ public class QuadImage {
 		return (n.getLevel() == numLevels - 1);
 	}
 
+	QuadTokenizer makeTokenizer(InputStream in) {
+		return new QuadTokenizerBinGray(in,ucode);
+	}
+
 	/**
 	 * Lecture des données d'une image QGM au format 
 	 * @param inputStream
 	 * @throws IOException
 	 */
 	private void loadQgmData(InputStream inputStream) throws IOException {
-		QuadTokenizer tokenizer= new QuadTokenizerBin(inputStream, ucode);
+		QuadTokenizer tokenizer= makeTokenizer(inputStream);
 
 		/* Utilisation d'une file pour le parcours en largeur */
 		List fifou= new ArrayList();
@@ -171,89 +170,80 @@ public class QuadImage {
 			QuadNode currentNode= (QuadNode)fifou.remove(0);
 			int value;
 			boolean plain;
+			int levelFlag;
 
-			if (currentNode.getLocation()==QuadNode.TOPLEFT) {
-				QuadValue qv;
+			/* Utilisation d'un flag qui indique si le noeud est une feuille
+			 * (correspond à un pixel) ou un noeud interne.
+			 */
+			if (belongsToLastLevel(currentNode))
+				levelFlag= QuadTokenizer.LEAF;
+			else
+				levelFlag= QuadTokenizer.INTERNAL;
 
-				if (belongsToLastLevel(currentNode)) {
-					qv= tokenizer.next(QuadTokenizer.PIXEL_FIRST_CHILD_NODE);
-				} else {
-					qv= tokenizer.next(QuadTokenizer.INTERNAL_FIRST_CHILD_NODE);
-				}
+			/* Le noeud est il homogène et quelle est sa valeur ? */
+			QuadValue qv;
+			switch (currentNode.getLocation()) {
+				case QuadNode.TOPLEFT :
+					qv= tokenizer.next(levelFlag, QuadTokenizer.FIRST);
+					currentNode.setPlain(qv.plain);
+					break;
 
-				currentNode.setPlain(qv.plain);
-			} else {
-				/* Si l'élément courant est un dernier fils, on indique au 
-				 * QuadTokenizer que la prochaine valeur devra être lue 
-				 * spécialement 
-				 */
-				if (currentNode.getLocation() == QuadNode.BOTTOMLEFT) {
-					QuadValue qv;
-					if (belongsToLastLevel(currentNode)) {
-						qv=
-							tokenizer.next(
-								QuadTokenizer.PIXEL_NORMAL_CHILD_NODE);
-					} else {
-						qv=
-							tokenizer.next(
-								QuadTokenizer.INTERNAL_LAST_CHILD_NODE);
-					}
-
+				case QuadNode.BOTTOMLEFT :
+					qv= tokenizer.next(levelFlag, QuadTokenizer.LAST);
 					currentNode.setValue(qv.value);
 					currentNode.setPlain(qv.plain);
-				}
+					break;
 
-				/* Sinon la valeur est lue normalement */
-				else {
-					QuadValue qv;
-					if (belongsToLastLevel(currentNode)) {
-						qv=
-							tokenizer.next(
-								QuadTokenizer.PIXEL_NORMAL_CHILD_NODE);
-					} else {
-						qv=
-							tokenizer.next(
-								QuadTokenizer.INTERNAL_NORMAL_CHILD_NODE);
-					}
-
+				default :
+					qv= tokenizer.next(levelFlag, QuadTokenizer.NORMAL);
 					currentNode.setValue(qv.value);
 					currentNode.setPlain(qv.plain);
-				}
+					break;
 			}
 
-			if (currentNode.isPlain()) {
-				return;
-			} else {
+			/* Si le noeud est homogène, on ne traite pas ses fils
+			 * Sinon, on les ajoute à la file pour les traiter plus tard */
+			if (currentNode.isNotPlain()) {
 				int nextLevel= currentNode.getLevel() + 1;
-				currentNode.setTopLeftChild(
-					new QuadNode(nextLevel, QuadNode.TOPLEFT));
-				currentNode.setTopRightChild(
-					new QuadNode(nextLevel, QuadNode.TOPRIGHT));
-				currentNode.setBottomLeftChild(
-					new QuadNode(nextLevel, QuadNode.BOTTOMLEFT));
-				currentNode.setBottomRightChild(
-					new QuadNode(nextLevel, QuadNode.BOTTOMRIGHT));
-				
-				QuadNode topLeft=currentNode.getTopLeftChild();
-				topLeft.setValue(currentNode.getValue());
 
-				fifou.add(topLeft);
-				fifou.add(currentNode.getTopRightChild());
-				fifou.add(currentNode.getBottomRightChild());
-				fifou.add(currentNode.getBottomLeftChild());
+				QuadNode topLeftChild=
+					new QuadNode(nextLevel, QuadNode.TOPLEFT);
+				QuadNode topRightChild=
+					new QuadNode(nextLevel, QuadNode.TOPRIGHT);
+				QuadNode bottomLeftChild=
+					new QuadNode(nextLevel, QuadNode.BOTTOMLEFT);
+				QuadNode bottomRightChild=
+					new QuadNode(nextLevel, QuadNode.BOTTOMRIGHT);
+
+				topLeftChild.setValue(currentNode.getValue());
+
+				currentNode.setTopLeftChild(topLeftChild);
+				currentNode.setTopRightChild(topRightChild);
+				currentNode.setBottomLeftChild(bottomLeftChild);
+				currentNode.setBottomRightChild(bottomRightChild);
+
+				fifou.add(topLeftChild);
+				fifou.add(topRightChild);
+				fifou.add(bottomRightChild);
+				fifou.add(bottomLeftChild);
 			}
 		}
 	}
 
-	private void saveQgm(String path, int stddev)
+	private void saveQgm(String path)
 		throws FileNotFoundException {
-		saveQgm(new FileOutputStream(path), stddev);
+		saveQgm(new FileOutputStream(path));
 	}
 
+	void write(PrintStream out, int value) {
+//		out.print("" + value + " ");
+		out.write(value);
+	}
+	
 	/**
 	 * Sauvegarde du quadtree au format QGM 
 	 */
-	public void saveQgm(OutputStream outOS, int stddev)
+	public void saveQgm(OutputStream outOS)
 		throws FileNotFoundException {
 		PrintStream out= new PrintStream(outOS);
 		out.println("Q1");
@@ -285,13 +275,13 @@ public class QuadImage {
 			if (plain) {
 				if (location == QuadNode.TOPLEFT) {
 					if (level != lastLevel) {
-						out.write(ucode);
-						out.write(ucode);
+						write(out, ucode);
+						write(out, ucode);
 					}
 				} else {
-					out.write(value);
+					write(out, value);
 					if (level != lastLevel) {
-						out.write(ucode);
+						write(out, ucode);
 					}
 				}
 			}
@@ -301,7 +291,7 @@ public class QuadImage {
 			 */
 			else {
 				if (location != QuadNode.TOPLEFT) {
-					out.write(value);
+					write(out, value);
 				}
 
 				fifou.add(n.getTopLeftChild());
@@ -311,5 +301,9 @@ public class QuadImage {
 			}
 		}
 	}
-
+	
+	public void compress(double initialDev, double factor) {
+		quadRoot.compress(initialDev,factor);
+	}
+	
 }

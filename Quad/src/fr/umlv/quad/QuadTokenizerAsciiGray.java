@@ -10,10 +10,10 @@ import java.io.StreamTokenizer;
 /**
  * @author cpele
  */
-public class QuadTokenizerAscii extends QuadTokenizer {
+public class QuadTokenizerAsciiGray extends QuadTokenizer {
 	private StreamTokenizer tokenizer;
 
-	public QuadTokenizerAscii(InputStream in, int ucode) {
+	public QuadTokenizerAsciiGray(InputStream in, int ucode) {
 		super(ucode);
 		this.tokenizer= new StreamTokenizer(in);
 	}

@@ -209,6 +209,10 @@ public class Raster {
 		else
 			throw new QuadError(
 				path + ": Erreur lors de la lecture du type PGM");
+		if (!typeStr.equals("P5"))
+			throw new QuadError(
+				path
+					+ ": Seules les images en niveaux de gris au format binaire sont gérées");
 
 		/* Lecture de la largeur */
 		ttype= tokenizer.nextToken();
@@ -465,13 +469,12 @@ public class Raster {
 		int lineOffset,
 		int columnOffset,
 		int height,
-		int width)
-	{
-		if (height*width<=1)
+		int width) {
+		if (height * width <= 1)
 			return true;
 		return false;
 	}
-	
+
 	/**
 	 * Test d'homogénéité d'une zone de l'image
 	 * @param lineOffset
@@ -485,9 +488,8 @@ public class Raster {
 		int lineOffset,
 		int columnOffset,
 		int height,
-		int width, 
-		double value) 
-	{
+		int width,
+		double value) {
 		if (height * width <= 1)
 			return true;
 
