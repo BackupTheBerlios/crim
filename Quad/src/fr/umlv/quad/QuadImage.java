@@ -155,49 +155,46 @@ public class QuadImage {
 	 * @throws IOException
 	 */
 	private void loadQgmData(InputStream inputStream) throws IOException {
-		QuadTokenizer tokenizer= new QuadTokenizer(inputStream, ucode);
+		QuadTokenizer tokenizer= new QuadTokenizerAscii(inputStream, ucode);
 		List fifou= new ArrayList(); // la file
 		quadRoot= new QuadNode();
 		fifou.add(quadRoot);
 
 		while (!fifou.isEmpty()) {
-			Object o= (QuadNode)fifou.remove(0);
+			Object o= fifou.remove(0);
 			QuadNode n;
-			boolean currentIsFirstChild= false;
-			boolean currentIsLastChild= false;
-			boolean currentNodeIsPlain= false;
 			int value;
+			boolean plain;
 
 			if (o == null) {
-				currentIsFirstChild= false;
-				currentIsLastChild= true;
-
 				n= (QuadNode)fifou.remove(0);
-				tokenizer.next(currentIsFirstChild, currentIsLastChild);
+				tokenizer.next(QuadTokenizer.CT_LAST);
 
-				n.setValue(value= tokenizer.value());
-				n.setPlain(tokenizer.plain());
+				value= tokenizer.value();
+				plain= tokenizer.plain();
+				n.setValue(value);
+				n.setPlain(plain);
 			} else if (o instanceof Integer) {
-				currentIsFirstChild= true;
-				currentIsLastChild= false;
-
 				Integer i= (Integer)o;
 
 				n= (QuadNode)fifou.remove(0);
-				tokenizer.next(currentIsFirstChild, currentIsLastChild);
+				tokenizer.next(QuadTokenizer.CT_FIRST);
 
-				n.setValue(value= i.intValue());
-				n.setPlain(tokenizer.plain());
+				value= i.intValue();
+				plain= tokenizer.plain();
+				n.setValue(value);
+				n.setPlain(plain);
 			} else {
-				currentIsFirstChild= false;
-				currentIsLastChild= false;
-
 				n= (QuadNode)o;
-				tokenizer.next(currentIsFirstChild, currentIsLastChild);
+				tokenizer.next(QuadTokenizer.CT_NORMAL);
 
-				n.setValue(value= tokenizer.value());
-				n.setPlain(tokenizer.plain());
+				value= tokenizer.value();
+				plain= tokenizer.plain();
+				n.setValue(value);
+				n.setPlain(plain);
 			}
+
+			System.out.println(""+value+": "+plain);
 
 			if (!n.isPlain()) {
 				n.setTopLeftChild(new QuadNode());
@@ -244,11 +241,11 @@ public class QuadImage {
 			 */
 			if (n.isPlain()) {
 				if (thisIsAFirstChild) {
-					out.write(ucode);
-					out.write(ucode);
+					out.print("" + ucode + " ");
+					out.print("" + ucode + " ");
 				} else {
-					out.write(n.getValue());
-					out.write(ucode);
+					out.print("" + n.getValue() + " ");
+					out.print("" + ucode + " ");
 				}
 			}
 
@@ -256,7 +253,7 @@ public class QuadImage {
 			 */
 			else {
 				if (!thisIsAFirstChild)
-					out.write(n.getValue());
+					out.print("" + n.getValue() + " ");
 
 				fifou.add(null);
 				fifou.add(n.getTopLeftChild());

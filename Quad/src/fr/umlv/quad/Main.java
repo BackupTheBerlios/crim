@@ -25,7 +25,7 @@ public class Main {
 //		image=new QuadImage("images/Boat.128.qgm");
 //		image=new QuadImage("images/Boat.64.pgm");
 //		image=new QuadImage("images/Boat.16.pgm");
-		image=new QuadImage("images/Boat.4.pgm");
+		image=new QuadImage("images/Boat.4.qgm");
 //		image=new QuadImage("images/Boat.2.qgm");
 //		image=new QuadImage("images/black.512.pgm");
 //		image=new QuadImage("images/lena.512.pgm");
