@@ -3,8 +3,14 @@
  */
 package fr.umlv.quad;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+
+import sun.awt.image.ImageDecoder;
 
 /**
  * @author cpele
@@ -14,32 +20,29 @@ import java.io.IOException;
 public class Main {
 	public static void main(String[] args)
 		throws FileNotFoundException, IOException {
-		System.out.print("Chargement de l'image: ");
-		System.out.flush();
-		QuadImage image;
-//		image=new QuadImage("images/galaxie.1024.pgm");
-//		image=new QuadImage("images/Boat.512.pgm");
-		image= new QuadImage("images/buzz.512.qgm");
-//		image=new QuadImage("images/Boat.256.qgm");
-//		image=new QuadImage("images/Boat.128.qgm");
-//		image=new QuadImage("images/Boat.64.qgm");
-//		image=new QuadImage("images/Boat.32.qgm");
-//		image=new QuadImage("images/Boat.4.qgm");
-//		image=new QuadImage("images/Boat.2.qgm");
-//		image=new QuadImage("images/black.512.pgm");
-//		image=new QuadImage("images/lena.512.pgm");
-//		image=new QuadImage("images/chromosome.512.2.pgm");
-		System.out.println(image.getPath());
+		File imagesDir= new File("images");
+		String[] imagePathTab= imagesDir.list();
 
-		System.out.print("Sauvegarde de l'image: ");
-		System.out.flush();
-		image.save("out/image.pgm");
-		System.out.print(image.getPath() + " ");
-//		image.saveQgmAscii(System.out);
-		image.save("out/image.qgm");
-//		image.save("images/buzz.512.qgm");
-		System.out.print(image.getPath());
-		System.out.println(".");
-//		image.save("out/save.dot");
+		for (int i= 0; i < imagePathTab.length; i++) {
+			String path= imagePathTab[i];
+			if (!path.endsWith(".pgm"))
+				continue;
+
+			System.out.println("Traitement de " + path);
+
+			QuadImage image;
+
+			System.out.print("	Compression : ");
+			System.out.flush();
+			image= new QuadImage("images/" + path);
+			image.save("out/" + path + ".qgm");
+			System.out.println("Ok");
+
+			System.out.print("	Décompression : ");
+			System.out.flush();
+			image= new QuadImage("out/" + path + ".qgm");
+			image.save("out2/" + path + ".qgm.pgm");
+			System.out.println("Ok");
+		}
 	}
 }

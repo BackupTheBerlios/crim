@@ -14,6 +14,7 @@ public class QuadNode {
 	private boolean plain;
 	private int value;
 	private int level;
+	private double stddev;
 
 	private QuadNode topLeftChild;
 	private QuadNode topRightChild;
@@ -40,25 +41,15 @@ public class QuadNode {
 		int currentHeight,
 		int currentWidth,
 		int level)
-		throws IOException
-	{
+		throws IOException {
 		this(level);
 
-		/* Condition d'arrêt de la récursion : la région du raster considérée 
-		 * est homogène */
-		if (raster
-			.isPlainDev(
-				currentLineOffset,
-				currentColumnOffset,
-				currentHeight,
-				currentWidth, 15)) {
+		/* Condition d'arrêt de la récursion : la taille du raster est 
+		 * inférieure à 1x1 */
+		if (currentHeight * currentWidth <= 1) {
 			plain= true;
-			value=
-				(int)raster.mean(
-					currentLineOffset,
-					currentColumnOffset,
-					currentHeight,
-					currentWidth);
+			value= raster.pixel(currentLineOffset, currentColumnOffset);
+			stddev= 0;
 			return;
 		}
 
@@ -108,7 +99,52 @@ public class QuadNode {
 				level + 1);
 
 		value= topLeftChild.value;
-		plain= false;
+		if (topLeftChild.plain
+			&& topRightChild.plain
+			&& bottomLeftChild.plain
+			&& bottomRightChild.plain
+			&& topLeftChild.value == topRightChild.value
+			&& topLeftChild.value == bottomLeftChild.value
+			&& topLeftChild.value == bottomRightChild.value) {
+			plain= true;
+		}
+
+		/*--------------------------------------------------------------*/
+		/*-- Calcul de la variance (stddev=starndard deviation) --------*/
+		/*--------------------------------------------------------------*/
+
+		/* Calcul de la moyenne des fils */
+		double m=
+			(topLeftChild.value
+				+ topRightChild.value
+				+ bottomLeftChild.value
+				+ bottomRightChild.value)
+				/ 4.;
+
+		/* Calcul des différences */
+		double topLeftChildValue_m= topLeftChild.value - m;
+		double bottomLeftChildValue_m= bottomLeftChild.value - m;
+		double topRightChildValue_m= topRightChild.value - m;
+		double bottomRightChildValue_m= bottomRightChild.value - m;
+
+		/* Calcul du premier terme */
+		double stddev1=
+			(topLeftChildValue_m * topLeftChildValue_m
+				+ bottomLeftChildValue_m * bottomLeftChildValue_m
+				+ topRightChildValue_m * topRightChildValue_m
+				+ bottomRightChildValue_m * bottomRightChildValue_m)
+				/ 4.;
+
+		/* Calcul du deuxième terme */
+		double stddev2=
+			(topLeftChild.stddev
+				+ topRightChild.stddev
+				+ bottomLeftChild.stddev
+				+ bottomRightChild.stddev)
+				/ 16.;
+
+		/* Somme des termes pour obtenir la variance */
+		stddev= stddev1 + stddev2;
 	}
 
 	/**

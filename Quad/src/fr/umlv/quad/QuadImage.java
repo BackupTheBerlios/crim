@@ -24,16 +24,14 @@ public class QuadImage {
 	private int maxValue;
 	private int ucode;
 	private QuadNode quadRoot;
-	private String path;
 
 	/**
 	 * Création d'une image à partir d'un fichier sur le disque
 	 * @param chemin : Chemin du fichier
 	 */
 	public QuadImage(String path) throws FileNotFoundException, IOException {
-		this.path= path;
 		if (path.endsWith(".pgm")) {
-			loadPgm(path);
+			importPgm(path);
 		} else if (path.endsWith(".qgm")) {
 			loadQgm(path);
 		} else {
@@ -47,10 +45,9 @@ public class QuadImage {
 	 * @throws IOException
 	 */
 	public void save(String path) throws IOException {
-		this.path=path;
 		/* Génération d'une image pgm */
 		if (path.endsWith(".pgm")) {
-			savePgm(path);
+			exportPgm(path);
 		} else if (path.endsWith(".qgm")) {
 			saveQgm(path);
 		} else {
@@ -62,7 +59,7 @@ public class QuadImage {
 	/*-- Gestion des fichiers PGM ---------------------------------*/
 	/*-------------------------------------------------------------*/
 
-	private void savePgm(String path) throws IOException {
+	private void exportPgm(String path) throws IOException {
 		int width= (int)Math.sqrt(Math.pow(4, numLevels - 1));
 		int height= width;
 		Raster r= quadRoot.toRaster(height, width, maxValue);
@@ -72,7 +69,7 @@ public class QuadImage {
 	/**
 	 * Chargement d'une image PGM
 	 */
-	private void loadPgm(String path)
+	private void importPgm(String path)
 		throws NumberFormatException, IOException {
 		Raster raster= new Raster(path);
 		ucode= raster.ucode();
@@ -123,31 +120,28 @@ public class QuadImage {
 		if (ttype == tokenizer.TT_WORD)
 			typeStr= tokenizer.sval;
 		else
-			throw new QuadError(
-				path + ": Erreur lors de la lecture du type QGM");
+			throw new QuadError("Erreur lors de la lecture du type QGM");
 
 		/* Lecture du nombre de niveaux */
 		ttype= tokenizer.nextToken();
 		if (ttype == tokenizer.TT_NUMBER)
 			numLevels= (int)tokenizer.nval;
 		else
-			throw new QuadError(path + ": Erreur lors du nombre de niveaux");
+			throw new QuadError("Erreur lors de la lecture du nombre de niveaux");
 
 		/* Lecture du nombre de valeurs */
 		ttype= tokenizer.nextToken();
 		if (ttype == tokenizer.TT_NUMBER)
 			maxValue= (int)tokenizer.nval;
 		else
-			throw new QuadError(
-				path + ": Erreur lors de la lecture de la valeur maximale");
+			throw new QuadError("Erreur lors de la lecture de la valeur maximale");
 
 		/* Lecture de la valeur du marqueur ucode */
 		ttype= tokenizer.nextToken();
 		if (ttype == tokenizer.TT_NUMBER)
 			ucode= (int)tokenizer.nval;
 		else
-			throw new QuadError(
-				path + ": Erreur lors de la lecture du marqueur ucode");
+			throw new QuadError("Erreur lors de la lecture du marqueur ucode");
 	}
 
 	private boolean belongsToLastLevel(QuadNode n) {
@@ -160,10 +154,10 @@ public class QuadImage {
 	 * @throws IOException
 	 */
 	private void loadQgmData(InputStream inputStream) throws IOException {
-		QuadTokenizer tokenizer= new QuadTokenizerAscii(inputStream, ucode);
+		QuadTokenizer tokenizer= new QuadTokenizerBin(inputStream, ucode);
 
 		/* Utilisation d'une file pour le parcours en largeur */
-		List fifou= new ArrayList(); 
+		List fifou= new ArrayList();
 		quadRoot= new QuadNode(0);
 		fifou.add(quadRoot);
 
@@ -180,15 +174,15 @@ public class QuadImage {
 				currentNode= (QuadNode)fifou.remove(0);
 				QuadValue qv;
 				if (belongsToLastLevel(currentNode)) {
-					qv=tokenizer.next(QuadTokenizer.PIXEL_NORMAL_CHILD_NODE);
+					qv= tokenizer.next(QuadTokenizer.PIXEL_NORMAL_CHILD_NODE);
 				} else {
-					qv=tokenizer.next(QuadTokenizer.INTERNAL_LAST_CHILD_NODE);
+					qv= tokenizer.next(QuadTokenizer.INTERNAL_LAST_CHILD_NODE);
 				}
 
 				currentNode.setValue(qv.value);
 				currentNode.setPlain(qv.plain);
-			} 
-			
+			}
+
 			/* Si l'élément courant est un Integer, alors l'élément suivant est
 			 * un premier fils (voir pourquoi plus loin).  La valeur de ce fils
 			 * est égale à celle de son ancêtre, qui est stockée dans l'Integer
@@ -200,35 +194,39 @@ public class QuadImage {
 				QuadValue qv;
 
 				if (belongsToLastLevel(currentNode)) {
-					qv=tokenizer.next(QuadTokenizer.PIXEL_FIRST_CHILD_NODE);
+					qv= tokenizer.next(QuadTokenizer.PIXEL_FIRST_CHILD_NODE);
 				} else {
-					qv=tokenizer.next(QuadTokenizer.INTERNAL_FIRST_CHILD_NODE);
+					qv= tokenizer.next(QuadTokenizer.INTERNAL_FIRST_CHILD_NODE);
 				}
 
 				currentNode.setValue(i.intValue());
 				currentNode.setPlain(qv.plain);
-			} 
-			
-			else {
+			} else {
 				currentNode= (QuadNode)o;
 				QuadValue qv;
 				if (belongsToLastLevel(currentNode)) {
-					qv=tokenizer.next(QuadTokenizer.PIXEL_NORMAL_CHILD_NODE);
+					qv= tokenizer.next(QuadTokenizer.PIXEL_NORMAL_CHILD_NODE);
 				} else {
-					qv=tokenizer.next(QuadTokenizer.INTERNAL_NORMAL_CHILD_NODE);
+					qv=
+						tokenizer.next(
+							QuadTokenizer.INTERNAL_NORMAL_CHILD_NODE);
 				}
 
 				currentNode.setValue(qv.value);
 				currentNode.setPlain(qv.plain);
 			}
 
-//			System.out.println("value: " + value + " plain: " + plain);
+			//			System.out.println("value: " + value + " plain: " + plain);
 
 			if (!currentNode.isPlain()) {
-				currentNode.setTopLeftChild(new QuadNode(currentNode.getLevel() + 1));
-				currentNode.setTopRightChild(new QuadNode(currentNode.getLevel() + 1));
-				currentNode.setBottomLeftChild(new QuadNode(currentNode.getLevel() + 1));
-				currentNode.setBottomRightChild(new QuadNode(currentNode.getLevel() + 1));
+				currentNode.setTopLeftChild(
+					new QuadNode(currentNode.getLevel() + 1));
+				currentNode.setTopRightChild(
+					new QuadNode(currentNode.getLevel() + 1));
+				currentNode.setBottomLeftChild(
+					new QuadNode(currentNode.getLevel() + 1));
+				currentNode.setBottomRightChild(
+					new QuadNode(currentNode.getLevel() + 1));
 
 				fifou.add(new Integer(currentNode.getValue()));
 				fifou.add(currentNode.getTopLeftChild());
@@ -282,13 +280,18 @@ public class QuadImage {
 			if (n.isPlain()) {
 				if (thisIsAFirstChild) {
 					if (n.getLevel() != numLevels - 1) {
-						out.print("" + ucode + " ");
-						out.print("" + ucode + " ");
+//						out.print("" + ucode + " ");
+//						out.print("" + ucode + " ");
+						out.write(ucode);
+						out.write(ucode);
 					}
 				} else {
-					out.print("" + value + " ");
-					if (n.getLevel() != numLevels - 1)
-						out.print("" + ucode + " ");
+//					out.print("" + value + " ");
+					out.write(value);
+					if (n.getLevel() != numLevels - 1) {
+//						out.print("" + ucode + " ");
+						out.write(ucode);
+					}
 				}
 			}
 
@@ -296,23 +299,22 @@ public class QuadImage {
 			 * La valeur est omise si le noeud est un premier fils.
 			 */
 			else {
-				if (!thisIsAFirstChild)
-					out.print("" + value + " ");
+				if (!thisIsAFirstChild) {
+//					out.print("" + value + " ");
+					out.write(value);
+				}
 
 				/* On indique la position du premier fils en insérant un objet
 				 * nul juste avant.
 				 */
 				fifou.add(null);
 				fifou.add(n.getTopLeftChild());
-				
+
 				fifou.add(n.getTopRightChild());
 				fifou.add(n.getBottomRightChild());
 				fifou.add(n.getBottomLeftChild());
 			}
 		}
 	}
-	
-	public String getPath() {
-		return path;
-	}
+
 }
