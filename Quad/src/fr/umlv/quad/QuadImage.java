@@ -44,23 +44,28 @@ public class QuadImage {
 		int currentColumnOffset,
 		int currentHeight,
 		int currentWidth)
-		throws IOException {
-		currentQIE.value=
-			raster.defaultValue(
-				currentLineOffset,
-				currentColumnOffset,
-				currentHeight,
-				currentWidth);
-		currentQIE.uni= false;
-		currentQIE.variance= 0;
-
+	throws IOException {
 		int values= raster.values();
 
 		if (currentWidth <= 1 || currentHeight <= 1) {
 			n++;
 			if (n % 50000 == 0)
 				System.out.println(n);
+
+			currentQIE.setValue(
+				raster.defaultValue(
+					currentLineOffset,
+					currentColumnOffset,
+					currentHeight,
+					currentWidth));
+			currentQIE.setUni(true);
+			currentQIE.setVariance(0);
+
 			return;
+		} else {
+			currentQIE.setValue((byte)0);
+			currentQIE.setUni(false);
+			currentQIE.setVariance(0);
 		}
 
 		currentQIE.topLeft= new QuadImageElement();
@@ -74,7 +79,7 @@ public class QuadImage {
 		int topLeftWidth= currentWidth / 2;
 		buildQuadTreeWithOffsets(
 			currentQIE.topLeft,
-			null,
+			raster,
 			topLeftLineOffset,
 			topLeftColumnOffset,
 			topLeftHeight,
@@ -86,7 +91,7 @@ public class QuadImage {
 		int topRightWidth= currentWidth / 2;
 		buildQuadTreeWithOffsets(
 			currentQIE.topRight,
-			null,
+			raster,
 			topRightLineOffset,
 			topRightColumnOffset,
 			topRightHeight,
@@ -98,7 +103,7 @@ public class QuadImage {
 		int bottomLeftWidth= currentWidth / 2;
 		buildQuadTreeWithOffsets(
 			currentQIE.bottomLeft,
-			null,
+			raster,
 			bottomLeftLineOffset,
 			bottomLeftColumnOffset,
 			bottomLeftHeight,
@@ -110,7 +115,7 @@ public class QuadImage {
 		int bottomRightWidth= currentWidth / 2;
 		buildQuadTreeWithOffsets(
 			currentQIE.bottomRight,
-			null,
+			raster,
 			bottomRightLineOffset,
 			bottomRightColumnOffset,
 			bottomRightHeight,
@@ -124,9 +129,9 @@ public class QuadImage {
 		QuadImageElement currentQIE,
 		Raster currentRaster)
 		throws IOException {
-		currentQIE.value= currentRaster.defaultValue();
-		currentQIE.uni= false;
-		currentQIE.variance= 0;
+		currentQIE.setValue(currentRaster.defaultValue());
+		currentQIE.setUni(false);
+		currentQIE.setVariance(0);
 
 		int width= currentRaster.width();
 		int height= currentRaster.height();
@@ -165,16 +170,11 @@ public class QuadImage {
 			exportToDotRec(quadRoot, out);
 			out.println("}");
 		} else if (path.endsWith(".pgm")) {
-			Raster r= toRaster();
+			Raster r= quadRoot.toRaster();
 			r.save(path);
 		} else {
 			throw new QuadError(path + ": Type de fichier inconnu");
 		}
-	}
-
-	private Raster toRaster() {
-		Raster raster= new Raster(10, 10, 255);
-		return raster;
 	}
 
 	private void exportToDotRec(
@@ -182,20 +182,20 @@ public class QuadImage {
 		PrintStream out) {
 		if (quadElement.bottomLeft != null) {
 			out.println(
-				"" + quadElement.id + " -> " + quadElement.bottomLeft.id);
+				"" + quadElement.getId() + " -> " + quadElement.getBottomLeft().getId());
 			exportToDotRec(quadElement.bottomLeft, out);
 		}
 		if (quadElement.bottomRight != null) {
 			out.println(
-				"" + quadElement.id + " -> " + quadElement.bottomRight.id);
+				"" + quadElement.getId() + " -> " + quadElement.getBottomRight().getId());
 			exportToDotRec(quadElement.bottomRight, out);
 		}
 		if (quadElement.topLeft != null) {
-			out.println("" + quadElement.id + " -> " + quadElement.topLeft.id);
+			out.println("" + quadElement.getId() + " -> " + quadElement.getTopLeft().getId());
 			exportToDotRec(quadElement.topLeft, out);
 		}
 		if (quadElement.topRight != null) {
-			out.println("" + quadElement.id + " -> " + quadElement.topRight.id);
+			out.println("" + quadElement.getId() + " -> " + quadElement.getTopRight().getId());
 			exportToDotRec(quadElement.topRight, out);
 		}
 	}

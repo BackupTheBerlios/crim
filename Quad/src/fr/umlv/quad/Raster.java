@@ -71,8 +71,32 @@ public class Raster {
 		Raster topRight,
 		Raster bottomLeft,
 		Raster bottomRight) {
+		this(topLeft.height * 2, topLeft.width * 2, 255);
 		checkDimensions(topLeft, topRight, bottomLeft, bottomRight);
-		//TODO
+		for (int i= 0; i < topLeft.height; i++) {
+			for (int j= 0; j < topLeft.width; j++) {
+				byte value= topLeft.pixel(i, j);
+				pixel(i, j, value);
+			}
+		}
+		for (int i= 0; i < topRight.height; i++) {
+			for (int j= 0; j < topRight.width; j++) {
+				byte value= topRight.pixel(i, j);
+				pixel(i, j + width / 2, value);
+			}
+		}
+		for (int i= 0; i < bottomLeft.height; i++) {
+			for (int j= 0; j < bottomLeft.width; j++) {
+				byte value= bottomLeft.pixel(i, j);
+				pixel(i + height / 2, j, value);
+			}
+		}
+		for (int i= 0; i < bottomRight.height; i++) {
+			for (int j= 0; j < bottomRight.width; j++) {
+				byte value= bottomRight.pixel(i, j);
+				pixel(i + height / 2, j + width / 2, value);
+			}
+		}
 	}
 
 	public boolean hasSameDimensions(Raster other) {
@@ -92,7 +116,7 @@ public class Raster {
 				&& topLeft.hasSameDimensions(bottomLeft)
 				&& topLeft.hasSameDimensions(bottomRight));
 		if (!ok)
-			throw new QuadError("Les quatre sous-rasters n'ont pas la même taille");
+			throw new QuadError("Les quatre sous-rasters n'ont pas la bonne taille");
 	}
 
 	/*-- Chargement d'images ---------------------------------*/
@@ -212,16 +236,16 @@ public class Raster {
 	/*-- Gestion des pixels ---------------------------------------*/
 
 	public byte pixel(int line, int column) {
-		checkDimensions(line, column);
+		checkPixelCoords(line, column);
 		return byteArray[line * width + column];
 	}
 
 	public void pixel(int line, int column, byte value) {
-		checkDimensions(line, column);
+		checkPixelCoords(line, column);
 		byteArray[line * width + column]= value;
 	}
 
-	private void checkDimensions(int line, int column) {
+	private void checkPixelCoords(int line, int column) {
 		boolean ok= true;
 		StringBuffer msgBuf= new StringBuffer();
 

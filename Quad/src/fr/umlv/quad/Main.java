@@ -23,6 +23,7 @@ public class Main {
 		long time=System.currentTimeMillis();
 		QuadImage image=new QuadImage("images/galaxie.1024.pgm");
 		System.out.println(System.currentTimeMillis()-time);
+		image.save("out/image.pgm");
 //		QuadImage image=new QuadImage("images/Boat.512.pgm");
 //		QuadImage image=new QuadImage("images/Boat.64.pgm");
 //		QuadImage image=new QuadImage("images/Boat.16.pgm");
