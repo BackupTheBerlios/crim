@@ -19,10 +19,10 @@ import java.util.Arrays;
  * @author cpele
  */
 public class Raster {
-	int width;
-	int height;
-	int values;
-	byte[] byteArray;
+	private int width;
+	private int height;
+	private int values;
+	private byte[] byteArray;
 
 	public Raster(int width, int height, int values) {
 		this.width= width;
@@ -64,6 +64,35 @@ public class Raster {
 		} else {
 			throw new QuadError(path + ": Extension de fichier incorrecte");
 		}
+	}
+
+	public Raster(
+		Raster topLeft,
+		Raster topRight,
+		Raster bottomLeft,
+		Raster bottomRight) {
+		checkDimensions(topLeft, topRight, bottomLeft, bottomRight);
+		//TODO
+	}
+
+	public boolean hasSameDimensions(Raster other) {
+		return (
+			height == other.height
+				&& width == other.width
+				&& values == other.values);
+	}
+
+	private void checkDimensions(
+		Raster topLeft,
+		Raster topRight,
+		Raster bottomLeft,
+		Raster bottomRight) {
+		boolean ok=
+			(topLeft.hasSameDimensions(topRight)
+				&& topLeft.hasSameDimensions(bottomLeft)
+				&& topLeft.hasSameDimensions(bottomRight));
+		if (!ok)
+			throw new QuadError("Les quatre sous-rasters n'ont pas la même taille");
 	}
 
 	/*-- Chargement d'images ---------------------------------*/
@@ -220,11 +249,48 @@ public class Raster {
 
 	private byte mean() {
 		double mean= 0;
-		int i= 0;
-		for (i= 0; i < numPixels(); i++) {
+		int numPixels= numPixels();
+		for (int i= 0; i < numPixels; i++) {
 			mean += byteArray[i];
 		}
-		mean /= i;
+		mean /= numPixels;
 		return (byte)mean;
+	}
+	public byte defaultValue(
+		int lineOffset,
+		int columnOffset,
+		int height,
+		int width) {
+		return mean(lineOffset, columnOffset, height, width);
+	}
+
+	private byte mean(
+		int lineOffset,
+		int columnOffset,
+		int height,
+		int width) {
+		double mean= 0;
+		for (int i= 0; i < height; i++) {
+			for (int j= 0; j < width; j++) {
+				mean += pixel(i + lineOffset, j + columnOffset);
+			}
+		}
+		mean /= height * width;
+		return (byte)mean;
+	}
+
+	public Raster subRaster(int lineOffset, int columnOffset) {
+		int width= this.width();
+		int height= this.height();
+		int values= this.values();
+
+		Raster subRaster= new Raster(width / 2, height / 2, values);
+		for (int i= lineOffset; i < height / 2 + lineOffset; i++) {
+			for (int j= columnOffset; j < width / 2 + columnOffset; j++) {
+				byte value= this.pixel(i, j);
+				subRaster.pixel(i - lineOffset, j - columnOffset, value);
+			}
+		}
+		return subRaster;
 	}
 }

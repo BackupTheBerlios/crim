@@ -15,8 +15,6 @@ import java.io.PrintStream;
  */
 public class QuadImage {
 	private QuadImageElement quadRoot;
-	private int numLevels;
-	private Raster raster;
 	private int n= 0;
 
 	/**
@@ -24,103 +22,181 @@ public class QuadImage {
 	 * @param chemin : Chemin du fichier
 	 */
 	public QuadImage(String path) throws FileNotFoundException, IOException {
-		raster= new Raster(path);
+		Raster raster= new Raster(path);
 		int width= raster.width();
 		int height= raster.height();
-		numLevels= 1 + (int) (log2(width * height) / 2.);
 		n= 0;
 		quadRoot= new QuadImageElement();
-		buildQuadTree(quadRoot, raster);
+		buildQuadTreeWithOffsets(quadRoot, raster, 0, 0, height, width);
 	}
 
-	double log2(double d) {
+	private double log2(double d) {
 		return Math.log(d) / Math.log(2);
-	}
-
-	private Raster buildSubRaster(
-		Raster raster,
-		int lineOffset,
-		int columnOffset) {
-		int width= raster.width();
-		int height= raster.height();
-		int values= raster.values();
-
-		Raster subRaster= new Raster(width / 2, height / 2, values);
-		for (int i= lineOffset; i < height / 2 + lineOffset; i++) {
-			for (int j= columnOffset; j < width / 2 + columnOffset; j++) {
-				byte value= raster.pixel(i, j);
-				subRaster.pixel(i - lineOffset, j - columnOffset, value);
-			}
-		}
-		return subRaster;
 	}
 
 	/** 
 	 * Cr?ation du quadtree ? partir du raster qui a ?t? charg?
 	 */
-	private void buildQuadTree(QuadImageElement currentQIE, Raster raster)
+	private void buildQuadTreeWithOffsets(
+		QuadImageElement currentQIE,
+		Raster raster,
+		int currentLineOffset,
+		int currentColumnOffset,
+		int currentHeight,
+		int currentWidth)
 		throws IOException {
-		currentQIE.value= raster.defaultValue();
+		currentQIE.value=
+			raster.defaultValue(
+				currentLineOffset,
+				currentColumnOffset,
+				currentHeight,
+				currentWidth);
 		currentQIE.uni= false;
 		currentQIE.variance= 0;
 
-		int width= raster.width();
-		int height= raster.height();
 		int values= raster.values();
 
-		if (raster.numPixels() <= 1) {
+		if (currentWidth <= 1 || currentHeight <= 1) {
 			n++;
 			if (n % 50000 == 0)
 				System.out.println(n);
 			return;
 		}
 
-		Raster topLeftRaster= buildSubRaster(raster, 0, 0);
-		Raster topRightRaster= buildSubRaster(raster, 0, width / 2);
-		Raster bottomRightRaster= buildSubRaster(raster, height / 2, width / 2);
-		Raster bottomLeftRaster= buildSubRaster(raster, height / 2, 0);
+		currentQIE.topLeft= new QuadImageElement();
+		currentQIE.topRight= new QuadImageElement();
+		currentQIE.bottomLeft= new QuadImageElement();
+		currentQIE.bottomRight= new QuadImageElement();
+
+		int topLeftLineOffset= currentLineOffset;
+		int topLeftColumnOffset= currentColumnOffset;
+		int topLeftHeight= currentHeight / 2;
+		int topLeftWidth= currentWidth / 2;
+		buildQuadTreeWithOffsets(
+			currentQIE.topLeft,
+			null,
+			topLeftLineOffset,
+			topLeftColumnOffset,
+			topLeftHeight,
+			topLeftWidth);
+
+		int topRightLineOffset= currentLineOffset;
+		int topRightColumnOffset= currentColumnOffset + currentWidth / 2;
+		int topRightHeight= currentHeight / 2;
+		int topRightWidth= currentWidth / 2;
+		buildQuadTreeWithOffsets(
+			currentQIE.topRight,
+			null,
+			topRightLineOffset,
+			topRightColumnOffset,
+			topRightHeight,
+			topRightWidth);
+
+		int bottomLeftLineOffset= currentLineOffset + currentHeight / 2;
+		int bottomLeftColumnOffset= currentColumnOffset;
+		int bottomLeftHeight= currentHeight / 2;
+		int bottomLeftWidth= currentWidth / 2;
+		buildQuadTreeWithOffsets(
+			currentQIE.bottomLeft,
+			null,
+			bottomLeftLineOffset,
+			bottomLeftColumnOffset,
+			bottomLeftHeight,
+			bottomLeftWidth);
+
+		int bottomRightLineOffset= currentLineOffset + currentHeight / 2;
+		int bottomRightColumnOffset= currentColumnOffset + currentWidth / 2;
+		int bottomRightHeight= currentHeight / 2;
+		int bottomRightWidth= currentWidth / 2;
+		buildQuadTreeWithOffsets(
+			currentQIE.bottomRight,
+			null,
+			bottomRightLineOffset,
+			bottomRightColumnOffset,
+			bottomRightHeight,
+			bottomRightWidth);
+	}
+
+	/** 
+	 * Cr?ation du quadtree ? partir du raster qui a ?t? charg?
+	 */
+	private void buildQuadTreeWithSubRasters(
+		QuadImageElement currentQIE,
+		Raster currentRaster)
+		throws IOException {
+		currentQIE.value= currentRaster.defaultValue();
+		currentQIE.uni= false;
+		currentQIE.variance= 0;
+
+		int width= currentRaster.width();
+		int height= currentRaster.height();
+		int values= currentRaster.values();
+
+		if (currentRaster.numPixels() <= 1) {
+			n++;
+			if (n % 50000 == 0)
+				System.out.println(n);
+			return;
+		}
+
+		Raster topLeftRaster= currentRaster.subRaster(0, 0);
+		Raster topRightRaster= currentRaster.subRaster(0, width / 2);
+		Raster bottomRightRaster=
+			currentRaster.subRaster(height / 2, width / 2);
+		Raster bottomLeftRaster= currentRaster.subRaster(height / 2, 0);
 
 		currentQIE.topLeft= new QuadImageElement();
 		currentQIE.topRight= new QuadImageElement();
 		currentQIE.bottomLeft= new QuadImageElement();
 		currentQIE.bottomRight= new QuadImageElement();
-		buildQuadTree(currentQIE.topLeft, topLeftRaster);
-		buildQuadTree(currentQIE.bottomLeft, bottomLeftRaster);
-		buildQuadTree(currentQIE.topRight, topRightRaster);
-		buildQuadTree(currentQIE.bottomRight, bottomRightRaster);
+		buildQuadTreeWithSubRasters(currentQIE.topLeft, topLeftRaster);
+		buildQuadTreeWithSubRasters(currentQIE.bottomLeft, bottomLeftRaster);
+		buildQuadTreeWithSubRasters(currentQIE.topRight, topRightRaster);
+		buildQuadTreeWithSubRasters(currentQIE.bottomRight, bottomRightRaster);
 	}
 
-	public void save(String path) throws FileNotFoundException {
+	public void save(String path) throws IOException {
 		if (path.endsWith(".dot")) {
 			Util.makeDir(path);
 			FileOutputStream outOS= new FileOutputStream(path);
 			PrintStream out= new PrintStream(outOS);
 			out.println("digraph shells {");
 			out.println("node [fontsize=20, shape = box];");
-			exportRec(quadRoot, out);
+			exportToDotRec(quadRoot, out);
 			out.println("}");
+		} else if (path.endsWith(".pgm")) {
+			Raster r= toRaster();
+			r.save(path);
 		} else {
 			throw new QuadError(path + ": Type de fichier inconnu");
 		}
 	}
 
-	private void exportRec(QuadImageElement quadElement, PrintStream out) {
+	private Raster toRaster() {
+		Raster raster= new Raster(10, 10, 255);
+		return raster;
+	}
+
+	private void exportToDotRec(
+		QuadImageElement quadElement,
+		PrintStream out) {
 		if (quadElement.bottomLeft != null) {
-			out.println("" + quadElement.id + " -> " + quadElement.bottomLeft.id);
-			exportRec(quadElement.bottomLeft, out);
+			out.println(
+				"" + quadElement.id + " -> " + quadElement.bottomLeft.id);
+			exportToDotRec(quadElement.bottomLeft, out);
 		}
 		if (quadElement.bottomRight != null) {
 			out.println(
 				"" + quadElement.id + " -> " + quadElement.bottomRight.id);
-			exportRec(quadElement.bottomRight, out);
+			exportToDotRec(quadElement.bottomRight, out);
 		}
 		if (quadElement.topLeft != null) {
 			out.println("" + quadElement.id + " -> " + quadElement.topLeft.id);
-			exportRec(quadElement.topLeft, out);
+			exportToDotRec(quadElement.topLeft, out);
 		}
 		if (quadElement.topRight != null) {
 			out.println("" + quadElement.id + " -> " + quadElement.topRight.id);
-			exportRec(quadElement.topRight, out);
+			exportToDotRec(quadElement.topRight, out);
 		}
 	}
 }
