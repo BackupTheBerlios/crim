@@ -44,6 +44,7 @@ public class QuadNode {
 	 */
 	public QuadNode(
 		Raster raster,
+		int band,
 		int currentLineOffset,
 		int currentColumnOffset,
 		int currentHeight,
@@ -57,7 +58,7 @@ public class QuadNode {
 		 * inférieure à 1x1 */
 		if (currentHeight * currentWidth <= 1) {
 			plain= true;
-			value= raster.pixel(currentLineOffset, currentColumnOffset);
+			value= raster.pixel(currentLineOffset, currentColumnOffset, band);
 			stddev= 0;
 			return;
 		}
@@ -75,6 +76,7 @@ public class QuadNode {
 		topLeftChild=
 			new QuadNode(
 				raster,
+				band,
 				currentLineOffset,
 				currentColumnOffset,
 				childRasterHeight,
@@ -86,6 +88,7 @@ public class QuadNode {
 		topRightChild=
 			new QuadNode(
 				raster,
+				band,
 				currentLineOffset,
 				rightOffset,
 				childRasterHeight,
@@ -97,6 +100,7 @@ public class QuadNode {
 		bottomLeftChild=
 			new QuadNode(
 				raster,
+				band,
 				bottomOffset,
 				currentColumnOffset,
 				childRasterHeight,
@@ -108,6 +112,7 @@ public class QuadNode {
 		bottomRightChild=
 			new QuadNode(
 				raster,
+				band,
 				bottomOffset,
 				rightOffset,
 				childRasterHeight,

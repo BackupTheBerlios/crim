@@ -23,13 +23,18 @@ public class QuadImage {
 	private int numLevels;
 	private int maxValue;
 	private int ucode;
-	private QuadNode quadRoot;
+	
+	int numBands;
+	private QuadNode quadRoot[];
 
 	/**
 	 * Création d'une image à partir d'un fichier sur le disque
 	 * @param chemin : Chemin du fichier
 	 */
 	public QuadImage(String path) throws FileNotFoundException, IOException {
+		numBands=1;
+		quadRoot=new QuadNode[numBands];
+
 		if (path.endsWith(".pgm")) {
 			importPgm(path);
 		} else if (path.endsWith(".qgm")) {
@@ -62,7 +67,7 @@ public class QuadImage {
 	private void exportPgm(String path) throws IOException {
 		int width= (int)Math.sqrt(Math.pow(4, numLevels - 1));
 		int height= width;
-		Raster r= quadRoot.toRaster(height, width, maxValue);
+		Raster r= quadRoot[0].toRaster(height, width, maxValue);
 		r.save(path);
 	}
 
@@ -89,10 +94,10 @@ public class QuadImage {
 					+ ": L'image doit être carrée et sa taille de la forme 2^n * 2^n");
 
 		this.numLevels= (int)numLevels;
-
+		
 		maxValue= raster.values();
-		quadRoot=
-			new QuadNode(raster, 0, 0, height, width, 0, QuadNode.ROOT);
+		quadRoot[0]=
+			new QuadNode(raster, 0, 0, 0, height, width, 0, QuadNode.ROOT);
 	}
 
 	/*-------------------------------------------------------------*/
@@ -163,8 +168,8 @@ public class QuadImage {
 
 		/* Utilisation d'une file pour le parcours en largeur */
 		List fifou= new ArrayList();
-		quadRoot= new QuadNode(0, QuadNode.ROOT);
-		fifou.add(quadRoot);
+		quadRoot[0]= new QuadNode(0, QuadNode.ROOT);
+		fifou.add(quadRoot[0]);
 
 		while (!fifou.isEmpty()) {
 			QuadNode currentNode= (QuadNode)fifou.remove(0);
@@ -252,7 +257,7 @@ public class QuadImage {
 
 		/* Utilisation d'une file pour le parcours en largeur */
 		List fifou= new ArrayList();
-		fifou.add(quadRoot);
+		fifou.add(quadRoot[0]);
 
 		while (!fifou.isEmpty()) {
 			QuadNode n= (QuadNode)fifou.remove(0);
@@ -303,7 +308,7 @@ public class QuadImage {
 	}
 	
 	public void compress(double initialDev, double factor) {
-		quadRoot.compress(initialDev,factor);
+		quadRoot[0].compress(initialDev,factor);
 	}
 	
 }

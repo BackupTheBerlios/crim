@@ -22,6 +22,9 @@ public class Raster {
 	private int width;
 	private int height;
 	private int values;
+
+	int numBands;
+
 	private int[] array;
 	private final String path;
 
@@ -31,11 +34,12 @@ public class Raster {
 	 * @param height
 	 * @param values
 	 */
-	public Raster(int height, int width, int values) {
+	public Raster(int height, int width, int numBands, int values) {
 		this.width= width;
 		this.height= height;
 		this.values= values;
-		array= new int[width * height];
+		this.numBands= numBands;
+		array= new int[width * height * numBands];
 		path= null;
 	}
 
@@ -46,16 +50,26 @@ public class Raster {
 	 * @param values
 	 * @param intArray
 	 */
-	public Raster(int height, int width, int values, int[] intArray) {
-		this(height, width, values);
+	public Raster(
+		int height,
+		int width,
+		int values,
+		int numBands,
+		int[] intArray) {
+		this(height, width, numBands, values);
 		load(intArray);
 	}
 
 	/**
 	 * Création d'un raster à partir d'une valeur par défaut
 	 */
-	public Raster(int height, int width, int values, int defaultValue) {
-		this(height, width, values);
+	public Raster(
+		int height,
+		int width,
+		int values,
+		int numBands,
+		int defaultValue) {
+		this(height, width, numBands, values);
 		Arrays.fill(array, defaultValue);
 	}
 
@@ -108,30 +122,20 @@ public class Raster {
 		Raster topRight,
 		Raster bottomLeft,
 		Raster bottomRight) {
-		this(topLeft.height * 2, topLeft.width * 2, 255);
+		this(topLeft.height * 2, topLeft.width * 2, topLeft.numBands, 255);
 		checkDimensions(topLeft, topRight, bottomLeft, bottomRight);
 		for (int i= 0; i < topLeft.height; i++) {
 			for (int j= 0; j < topLeft.width; j++) {
-				int value= topLeft.pixel(i, j);
-				pixel(i, j, value);
-			}
-		}
-		for (int i= 0; i < topRight.height; i++) {
-			for (int j= 0; j < topRight.width; j++) {
-				int value= topRight.pixel(i, j);
-				pixel(i, j + width / 2, value);
-			}
-		}
-		for (int i= 0; i < bottomLeft.height; i++) {
-			for (int j= 0; j < bottomLeft.width; j++) {
-				int value= bottomLeft.pixel(i, j);
-				pixel(i + height / 2, j, value);
-			}
-		}
-		for (int i= 0; i < bottomRight.height; i++) {
-			for (int j= 0; j < bottomRight.width; j++) {
-				int value= bottomRight.pixel(i, j);
-				pixel(i + height / 2, j + width / 2, value);
+				for (int k= 0; k < topLeft.numBands; k++) {
+					pixel(i, j, k, topLeft.pixel(i, j, k));
+					pixel(i, j + width / 2, k, topRight.pixel(i, j, k));
+					pixel(i + height / 2, j, k, bottomLeft.pixel(i, j, k));
+					pixel(
+						i + height / 2,
+						j + width / 2,
+						k,
+						bottomRight.pixel(i, j, k));
+				}
 			}
 		}
 	}
@@ -145,6 +149,7 @@ public class Raster {
 		return (
 			height == other.height
 				&& width == other.width
+				&& numBands == other.numBands
 				&& values == other.values);
 	}
 
@@ -161,6 +166,7 @@ public class Raster {
 			(values == topLeft.values
 				&& height == topLeft.height * 2
 				&& width == topLeft.width * 2
+				&& numBands == topLeft.numBands
 				&& topLeft.hasSameDimensions(topRight)
 				&& topLeft.hasSameDimensions(bottomLeft)
 				&& topLeft.hasSameDimensions(bottomRight));
@@ -341,9 +347,9 @@ public class Raster {
 	/**
 	 * Récupération de la valeur d'un pixel
 	 */
-	public int pixel(int line, int column) {
-		checkPixelCoords(line, column);
-		return array[line * width + column];
+	public int pixel(int line, int column, int band) {
+		checkPixelCoords(line, column, band);
+		return array[(line * width + column) * numBands + band];
 	}
 
 	/**
@@ -352,9 +358,9 @@ public class Raster {
 	 * @param column
 	 * @param value
 	 */
-	public void pixel(int line, int column, int value) {
-		checkPixelCoords(line, column);
-		array[line * width + column]= value;
+	public void pixel(int line, int column, int band, int value) {
+		checkPixelCoords(line, column, band);
+		array[(line * width + column) * numBands + band]= value;
 	}
 
 	/**
@@ -362,7 +368,7 @@ public class Raster {
 	 * @param line
 	 * @param column
 	 */
-	private void checkPixelCoords(int line, int column) {
+	private void checkPixelCoords(int line, int column, int band) {
 		boolean ok= true;
 		StringBuffer msgBuf= new StringBuffer();
 
@@ -374,6 +380,11 @@ public class Raster {
 		if (column >= width || column < 0) {
 			msgBuf.append(
 				"\nImpossible d'aller à la colonne demandée (" + column + ")");
+			ok= false;
+		}
+		if (band >= numBands || band < 0) {
+			msgBuf.append(
+				"\nImpossible d'aller à la composante demandée (" + band + ")");
 			ok= false;
 		}
 		if (!ok)
@@ -389,11 +400,12 @@ public class Raster {
 		int lineOffset,
 		int columnOffset,
 		int height,
-		int width) {
+		int width,
+		int band) {
 		double mean= 0;
 		for (int i= 0; i < height; i++) {
 			for (int j= 0; j < width; j++) {
-				mean += pixel(i + lineOffset, j + columnOffset);
+				mean += pixel(i + lineOffset, j + columnOffset, band);
 			}
 		}
 		mean /= height * width;
@@ -407,7 +419,8 @@ public class Raster {
 		int lineOffset,
 		int columnOffset,
 		int height,
-		int width) {
+		int width,
+		int band) {
 		//	   sd is sqrt of sum of (values-mean) squared divided by n - 1
 
 		//	   Calculate the mean
@@ -417,7 +430,7 @@ public class Raster {
 			throw new QuadError("Calcul de la variance impossible pour moins de deux valeurs");
 		for (int i= 0; i < height; i++) {
 			for (int j= 0; j < width; j++) {
-				mean += pixel(i + lineOffset, j + columnOffset);
+				mean += pixel(i + lineOffset, j + columnOffset, band);
 			}
 		}
 		mean /= n;
@@ -426,7 +439,8 @@ public class Raster {
 		double sum= 0;
 		for (int i= 0; i < height; i++) {
 			for (int j= 0; j < width; j++) {
-				final double v= pixel(i + lineOffset, j + columnOffset) - mean;
+				final double v=
+					pixel(i + lineOffset, j + columnOffset, band) - mean;
 				sum += v * v;
 			}
 		}
@@ -446,59 +460,17 @@ public class Raster {
 		int columnOffset,
 		int height,
 		int width) {
-		Raster subRaster= new Raster(height, width, values);
+		Raster subRaster= new Raster(height, width, numBands, values);
 
 		for (int i= lineOffset; i < height + lineOffset; i++) {
 			for (int j= columnOffset; j < width + columnOffset; j++) {
-				int value= this.pixel(i, j);
-				subRaster.pixel(i - lineOffset, j - columnOffset, value);
+				for (int k= 0; k < numBands; k++) {
+					int value= this.pixel(i, j, k);
+					subRaster.pixel(i - lineOffset, j - columnOffset, k, value);
+				}
 			}
 		}
 		return subRaster;
-	}
-
-	/**
-	 * Test d'homogénéité d'une zone de l'image
-	 * @param lineOffset
-	 * @param columnOffset
-	 * @param height
-	 * @param width
-	 * @return : Vrai uniquement si la zone est constituée d'un seul pixel
-	 */
-	public boolean isPlainPixel(
-		int lineOffset,
-		int columnOffset,
-		int height,
-		int width) {
-		if (height * width <= 1)
-			return true;
-		return false;
-	}
-
-	/**
-	 * Test d'homogénéité d'une zone de l'image
-	 * @param lineOffset
-	 * @param columnOffset
-	 * @param height
-	 * @param width
-	 * @return : Vrai si la variance des pixels de le zone est inférieure à 
-	 * une valeur
-	 */
-	public boolean isPlainDev(
-		int lineOffset,
-		int columnOffset,
-		int height,
-		int width,
-		double value) {
-		if (height * width <= 1)
-			return true;
-
-		double stddev= stddev(lineOffset, columnOffset, height, width);
-
-		if (stddev < value)
-			return true;
-		else
-			return false;
 	}
 
 	/**
