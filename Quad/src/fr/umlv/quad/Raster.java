@@ -23,6 +23,7 @@ public class Raster {
 	private int height;
 	private int values;
 	private int[] array;
+	private final String path;
 
 	/**
 	 * Cr�ation d'un raster vide
@@ -35,6 +36,7 @@ public class Raster {
 		this.height= height;
 		this.values= values;
 		array= new int[width * height];
+		path= null;
 	}
 
 	/**
@@ -64,11 +66,13 @@ public class Raster {
 	 * @throws IOException
 	 */
 	public Raster(String path) throws NumberFormatException, IOException {
+		this.path= path;
+
 		if (path.endsWith(".raw")) {
 			BufferedReader inReader=
 				new BufferedReader(new InputStreamReader(System.in));
 
-			System.out.println("Param?tres de l'image : ");
+			System.out.println("Paramètres de l'image : ");
 			System.out.print("	Hauteur : ");
 			int height= Integer.parseInt(inReader.readLine());
 			System.out.print("	Largeur : ");
@@ -85,7 +89,7 @@ public class Raster {
 	}
 
 	/**
-	 * Cr�ation d'un raster � partir de quatre sous-rasters
+	 * Création d'un raster à partir de quatre sous-rasters
 	 * @param topLeft
 	 * @param topRight
 	 * @param bottomLeft
@@ -125,7 +129,7 @@ public class Raster {
 	}
 
 	/**
-	 * Pr�dicat de comparaison des dimensions de deux rasters
+	 * Prédicat de comparaison des dimensions de deux rasters
 	 * @param other
 	 * @return
 	 */
@@ -137,7 +141,7 @@ public class Raster {
 	}
 
 	/**
-	 * V�rification que les dimensions des sous-rasters correspondent � celles
+	 * Vérification que les dimensions des sous-rasters correspondent à celles
 	 * du raster
 	 */
 	private void checkDimensions(
@@ -183,7 +187,7 @@ public class Raster {
 	}
 
 	/**
-	 * Charge l'en-t?te d'une image pgm
+	 * Charge l'en-tête d'une image pgm
 	 * 
 	 * @param inputStream : Le flux correspondant ? l'image
 	 * @throws IOException
@@ -197,27 +201,39 @@ public class Raster {
 		int ttype= tokenizer.nextToken();
 		if (ttype == tokenizer.TT_WORD)
 			typeStr= tokenizer.sval;
+		else
+			throw new QuadError(
+				path + ": Erreur lors de la lecture du type PGM");
 
 		/* Lecture de la largeur */
 		ttype= tokenizer.nextToken();
 		if (ttype == tokenizer.TT_NUMBER)
 			width= (int)tokenizer.nval;
+		else
+			throw new QuadError(
+				path + ": Erreur lors de la lecture de la largeur");
 
 		/* Lecture de la hauteur */
 		ttype= tokenizer.nextToken();
 		if (ttype == tokenizer.TT_NUMBER)
 			height= (int)tokenizer.nval;
+		else
+			throw new QuadError(
+				path + ": Erreur lors de la lecture de la hauteur");
 
 		/* Lecture du nombre de valeurs */
 		ttype= tokenizer.nextToken();
 		if (ttype == tokenizer.TT_NUMBER)
 			values= (int)tokenizer.nval;
+		else
+			throw new QuadError(
+				path + ": Erreur lors de la lecture de la valeur maximale");
 	}
 
 	/**
 	 * Charge le contenu brut d'une image (raster)
 	 * 
-	 * @param inputStream : Flux correspondant ? l'image
+	 * @param inputStream : Flux correspondant à l'image
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
@@ -227,7 +243,7 @@ public class Raster {
 		int n= readArray(inputStream, array);
 		if (n < height * width)
 			throw new QuadError(
-				"Fin de fichier inattendue ? l'octet n?" + n + " du raster");
+				"Fin de fichier inattendue à l'octet n°" + n + " du raster");
 	}
 
 	/**
@@ -312,7 +328,7 @@ public class Raster {
 	/*-- Gestion des pixels ---------------------------------------*/
 
 	/**
-	 * R�cup�ration de la valeur d'un pixel
+	 * Récupération de la valeur d'un pixel
 	 */
 	public int pixel(int line, int column) {
 		checkPixelCoords(line, column);
@@ -320,7 +336,7 @@ public class Raster {
 	}
 
 	/**
-	 * Mise � jour de la valeur d'un pixel
+	 * Mise à jour de la valeur d'un pixel
 	 * @param line
 	 * @param column
 	 * @param value
@@ -331,7 +347,7 @@ public class Raster {
 	}
 
 	/**
-	 * V�rifie la validit� des coordonn�es d'un pixel
+	 * Vérifie la validité des coordonnées d'un pixel
 	 * @param line
 	 * @param column
 	 */
@@ -341,14 +357,12 @@ public class Raster {
 
 		if (line >= height || line < 0) {
 			msgBuf.append(
-				"Impossible d'aller � la ligne demand�e (" + line + ")");
+				"Impossible d'aller à la ligne demandée (" + line + ")");
 			ok= false;
 		}
 		if (column >= width || column < 0) {
 			msgBuf.append(
-				"\nImpossible d'aller � la colonne demand�e ("
-					+ column
-					+ ")");
+				"\nImpossible d'aller à la colonne demandée (" + column + ")");
 			ok= false;
 		}
 		if (!ok)
@@ -365,10 +379,9 @@ public class Raster {
 		int lineOffset,
 		int columnOffset,
 		int height,
-		int width)
-	{
+		int width) {
 		return mean(lineOffset, columnOffset, height, width);
-//		return pixel(lineOffset, columnOffset);
+		//		return pixel(lineOffset, columnOffset);
 	}
 
 	private double mean(
@@ -434,7 +447,7 @@ public class Raster {
 		return subRaster;
 	}
 
-	public boolean isUni(
+	public boolean isPlain(
 		int lineOffset,
 		int columnOffset,
 		int height,
@@ -447,18 +460,10 @@ public class Raster {
 		return false;
 	}
 
-	private int max(int b1, int b2) {
-		return (b1 > b2) ? b1 : b2;
-	}
-
-	private int min(int b1, int b2) {
-		return (b1 < b2) ? b1 : b2;
-	}
-
 	public int max() {
 		int max= 0;
 		for (int i= 0; i < array.length; i++) {
-			max= max(array[i], max);
+			max= Util.max(array[i], max);
 		}
 		return max;
 	}
@@ -466,9 +471,30 @@ public class Raster {
 	public int min() {
 		int min= values;
 		for (int i= 0; i < array.length; i++) {
-			min= min(array[i], min);
+			min= Util.min(array[i], min);
 		}
 		return min;
+	}
+
+	public int ucode() {
+		/* Calcul de l'histogramme (histo[i]='nombre de pixels de valeur i') */
+		int[] histo= new int[values + 1];
+		Arrays.fill(histo, 0);
+		for (int i= 0; i < array.length; i++) {
+			histo[array[i]]++;
+		}
+
+		/* Calcul de la couleur ucode ayant le moins d'occurences dans 
+		 * l'image */
+		int minOcc= array.length;
+		int ucode= 0;
+		for (int i= 0; i < histo.length; i++) {
+			if (histo[i] < minOcc) {
+				minOcc= histo[i];
+				ucode= i;
+			}
+		}
+		return ucode;
 	}
 
 	public static void main(String[] args) throws IOException {
