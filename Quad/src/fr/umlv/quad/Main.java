@@ -18,13 +18,14 @@ import java.util.Iterator;
 public class Main {
 	public static void main(String[] args)
 		throws FileNotFoundException, IOException {
-		File imagesDir= new File("images");
+		String project= "/home/cpele/eclipse/Quad";
+		File imagesDir= new File(project + "/images");
 		String[] imagePathTab= imagesDir.list();
 
 		for (int i= 0; i < imagePathTab.length; i++) {
 			String path= imagePathTab[i];
-			String name= "Clown";
-			int size= 256;
+			String name= "CatLogo";
+			String size= "128";
 			String ext= ".ppm";
 			if (!path.endsWith(ext)
 				|| !path.matches("^(.*)" + name + "(.*)\\." + size + "\\.(.*)$"))
@@ -39,7 +40,7 @@ public class Main {
 
 				System.out.print("\t\tChargement PGM : ");
 				System.out.flush();
-				image= new QuadImage("images/" + path);
+				image= new QuadImage(project + "/images/" + path);
 				System.out.println("Ok");
 
 				System.out.print("\t\tCompression du quadtree : ");
@@ -50,19 +51,19 @@ public class Main {
 
 				System.out.print("\t\tSauvegarde QGM : ");
 				System.out.flush();
-				image.save("out/" + path + ".qgm");
+				image.save(project + "/out/" + path + ".qgm");
 				System.out.println("Ok");
 
 				System.out.println("\tDécompression");
 
 				System.out.print("\t\tChargement QGM : ");
 				System.out.flush();
-				image= new QuadImage("out/" + path + ".qgm");
+				image= new QuadImage(project + "/out/" + path + ".qgm");
 				System.out.println("Ok");
 
 				System.out.print("\t\tSauvegarde PGM : ");
 				System.out.flush();
-				image.save("out2/" + path + ".qgm.pgm");
+				image.save(project + "/out2/" + path + ".qgm.pgm");
 				System.out.println("Ok");
 			} catch (Exception e) {
 				System.out.println();

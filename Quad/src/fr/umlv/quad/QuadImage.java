@@ -21,7 +21,7 @@ public class QuadImage {
 	private QuadImageBand bands[];
 	private int numBands;
 	private int colorspace= YCBCR;
-
+	
 	public QuadImage(String path) throws IOException {
 		if (path.matches("^(.*)\\.(pgm|ppm)$")) {
 			Raster rasterRgb= new Raster(path);
@@ -45,6 +45,8 @@ public class QuadImage {
 			loadQgmHeader(inputStream);
 			for (int i= 0; i < numBands; i++)
 				bands[i].loadQgmData(inputStream);
+		} else if (path.matches("^(.*)\\.(hgm|hpm)$")) {
+			loadHuffman(path);
 		} else {
 			throw new QuadError(path + ": Format de fichier inconnu");
 		}
@@ -124,6 +126,8 @@ public class QuadImage {
 			savePortableMap(path);
 		} else if (path.matches("^(.*)\\.(qgm|qpm)$")) {
 			saveQuadMap(path);
+		} else if (path.matches("^(.*)\\.(hgm|hpm)$")) {
+			saveHuffman(path);
 		} else
 			throw new QuadError(path + ": Format de fichier inconnu");
 	}
@@ -186,6 +190,20 @@ public class QuadImage {
 		for (int i= 0; i < numBands; i++) {
 			compress(dev[i], factor[i], i);
 		}
+	}
+
+	/*---------------------------------------------------------------*/
+	/*-- Gestion des fichiers codés avec l'algo de huffman ----------*/
+	/*---------------------------------------------------------------*/
+
+	private void loadHuffman(String path) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	private void saveHuffman(String path) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }
