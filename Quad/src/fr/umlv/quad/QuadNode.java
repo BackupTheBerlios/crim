@@ -11,18 +11,26 @@ import java.io.IOException;
  * Elément d'une QuadImage (pixel de l'image ou noeud de l'arbre)
  */
 public class QuadNode {
+	public static final short ROOT=-1;
+	public static final short TOPLEFT= 0;
+	public static final short TOPRIGHT= 1;
+	public static final short BOTTOMLEFT= 2;
+	public static final short BOTTOMRIGHT= 3;
+
 	private boolean plain;
 	private int value;
-	private int level;
+	private short level;
 	private double stddev;
+	private short location;
 
 	private QuadNode topLeftChild;
 	private QuadNode topRightChild;
 	private QuadNode bottomLeftChild;
 	private QuadNode bottomRightChild;
 
-	public QuadNode(int level) {
-		this.level= level;
+	public QuadNode(int level, short location) {
+		this.level= (short)level;
+		this.location= location;
 	}
 
 	/** 
@@ -40,9 +48,10 @@ public class QuadNode {
 		int currentColumnOffset,
 		int currentHeight,
 		int currentWidth,
-		int level)
+		int level,
+		short location)
 		throws IOException {
-		this(level);
+		this(level, location);
 
 		/* Condition d'arrêt de la récursion : la taille du raster est 
 		 * inférieure à 1x1 */
@@ -57,6 +66,10 @@ public class QuadNode {
 
 		int childRasterHeight= currentHeight / 2;
 		int childRasterWidth= currentWidth / 2;
+		int bottomOffset=currentLineOffset + currentHeight / 2;
+		int rightOffset=currentColumnOffset + currentWidth / 2;
+
+		short nextLevel= (short) (level + 1);
 
 		/* Appel récursif (quart supérieur gauche) */
 		topLeftChild=
@@ -66,38 +79,45 @@ public class QuadNode {
 				currentColumnOffset,
 				childRasterHeight,
 				childRasterWidth,
-				level + 1);
+				nextLevel,
+				TOPLEFT);
 
 		/* Appel récursif (quart supérieur droit) */
 		topRightChild=
 			new QuadNode(
 				raster,
 				currentLineOffset,
-				currentColumnOffset + currentWidth / 2,
+				rightOffset,
 				childRasterHeight,
 				childRasterWidth,
-				level + 1);
+				nextLevel,
+				TOPRIGHT);
 
 		/* Appel récursif (quart inférieur gauche) */
 		bottomLeftChild=
 			new QuadNode(
 				raster,
-				currentLineOffset + currentHeight / 2,
+				bottomOffset,
 				currentColumnOffset,
 				childRasterHeight,
 				childRasterWidth,
-				level + 1);
+				nextLevel,
+				BOTTOMLEFT);
 
 		/* Appel récursif (quart inférieur droit) */
 		bottomRightChild=
 			new QuadNode(
 				raster,
-				currentLineOffset + currentHeight / 2,
-				currentColumnOffset + currentWidth / 2,
+				bottomOffset,
+				rightOffset,
 				childRasterHeight,
 				childRasterWidth,
-				level + 1);
+				nextLevel,
+				BOTTOMRIGHT);
 
+		/* Le noeud correspond à une zone uniforme si ses quatre fils sont
+		 * uniformes et si leurs valeurs sont égales
+		 */
 		value= topLeftChild.value;
 		if (topLeftChild.plain
 			&& topRightChild.plain
@@ -219,6 +239,22 @@ public class QuadNode {
 	}
 
 	public void setLevel(int i) {
-		level= i;
+		level= (short)i;
 	}
+
+	public boolean isPlain(double stddev) {
+		if (stddev == 0)
+			return plain;
+		if (this.stddev < stddev)
+			return true;
+		return false;
+	}
+	public short getLocation() {
+		return location;
+	}
+
+	public void setLocation(short s) {
+		location= s;
+	}
+
 }

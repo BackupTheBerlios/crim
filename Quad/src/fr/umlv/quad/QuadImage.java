@@ -49,10 +49,15 @@ public class QuadImage {
 		if (path.endsWith(".pgm")) {
 			exportPgm(path);
 		} else if (path.endsWith(".qgm")) {
-			saveQgm(path);
+			saveQgm(path, 0);
 		} else {
 			throw new QuadError(path + ": Type de fichier inconnu");
 		}
+	}
+
+	public void saveCompressed(String path, int stddev)
+		throws FileNotFoundException {
+		saveQgm(path, stddev);
 	}
 
 	/*-------------------------------------------------------------*/
@@ -91,7 +96,8 @@ public class QuadImage {
 		this.numLevels= (int)numLevels;
 
 		maxValue= raster.values();
-		quadRoot= new QuadNode(raster, 0, 0, height, width, 0);
+		quadRoot=
+			new QuadNode(raster, 0, 0, height, width, 0, QuadNode.TOPLEFT);
 	}
 
 	/*-------------------------------------------------------------*/
@@ -158,39 +164,15 @@ public class QuadImage {
 
 		/* Utilisation d'une file pour le parcours en largeur */
 		List fifou= new ArrayList();
-		quadRoot= new QuadNode(0);
+		quadRoot= new QuadNode(0, QuadNode.ROOT);
 		fifou.add(quadRoot);
 
 		while (!fifou.isEmpty()) {
-			Object o= fifou.remove(0);
-			QuadNode currentNode;
+			QuadNode currentNode= (QuadNode)fifou.remove(0);
 			int value;
 			boolean plain;
 
-			/* Si l'élément courant de la file est nul, alors le prochain 
-			 * élément est un dernier fils (voir pourquoi plus loin)
-			 */
-			if (o == null) {
-				currentNode= (QuadNode)fifou.remove(0);
-				QuadValue qv;
-				if (belongsToLastLevel(currentNode)) {
-					qv= tokenizer.next(QuadTokenizer.PIXEL_NORMAL_CHILD_NODE);
-				} else {
-					qv= tokenizer.next(QuadTokenizer.INTERNAL_LAST_CHILD_NODE);
-				}
-
-				currentNode.setValue(qv.value);
-				currentNode.setPlain(qv.plain);
-			}
-
-			/* Si l'élément courant est un Integer, alors l'élément suivant est
-			 * un premier fils (voir pourquoi plus loin).  La valeur de ce fils
-			 * est égale à celle de son ancêtre, qui est stockée dans l'Integer
-			 */
-			else if (o instanceof Integer) {
-				Integer i= (Integer)o;
-
-				currentNode= (QuadNode)fifou.remove(0);
+			if (currentNode.getLocation()==QuadNode.TOPLEFT) {
 				QuadValue qv;
 
 				if (belongsToLastLevel(currentNode)) {
@@ -199,76 +181,99 @@ public class QuadImage {
 					qv= tokenizer.next(QuadTokenizer.INTERNAL_FIRST_CHILD_NODE);
 				}
 
-				currentNode.setValue(i.intValue());
 				currentNode.setPlain(qv.plain);
 			} else {
-				currentNode= (QuadNode)o;
-				QuadValue qv;
-				if (belongsToLastLevel(currentNode)) {
-					qv= tokenizer.next(QuadTokenizer.PIXEL_NORMAL_CHILD_NODE);
-				} else {
-					qv=
-						tokenizer.next(
-							QuadTokenizer.INTERNAL_NORMAL_CHILD_NODE);
+				/* Si l'élément courant est un dernier fils, on indique au 
+				 * QuadTokenizer que la prochaine valeur devra être lue 
+				 * spécialement 
+				 */
+				if (currentNode.getLocation() == QuadNode.BOTTOMLEFT) {
+					QuadValue qv;
+					if (belongsToLastLevel(currentNode)) {
+						qv=
+							tokenizer.next(
+								QuadTokenizer.PIXEL_NORMAL_CHILD_NODE);
+					} else {
+						qv=
+							tokenizer.next(
+								QuadTokenizer.INTERNAL_LAST_CHILD_NODE);
+					}
+
+					currentNode.setValue(qv.value);
+					currentNode.setPlain(qv.plain);
 				}
 
-				currentNode.setValue(qv.value);
-				currentNode.setPlain(qv.plain);
+				/* Sinon la valeur est lue normalement */
+				else {
+					QuadValue qv;
+					if (belongsToLastLevel(currentNode)) {
+						qv=
+							tokenizer.next(
+								QuadTokenizer.PIXEL_NORMAL_CHILD_NODE);
+					} else {
+						qv=
+							tokenizer.next(
+								QuadTokenizer.INTERNAL_NORMAL_CHILD_NODE);
+					}
+
+					currentNode.setValue(qv.value);
+					currentNode.setPlain(qv.plain);
+				}
 			}
 
-			//			System.out.println("value: " + value + " plain: " + plain);
-
-			if (!currentNode.isPlain()) {
+			if (currentNode.isPlain()) {
+				return;
+			} else {
+				int nextLevel= currentNode.getLevel() + 1;
 				currentNode.setTopLeftChild(
-					new QuadNode(currentNode.getLevel() + 1));
+					new QuadNode(nextLevel, QuadNode.TOPLEFT));
 				currentNode.setTopRightChild(
-					new QuadNode(currentNode.getLevel() + 1));
+					new QuadNode(nextLevel, QuadNode.TOPRIGHT));
 				currentNode.setBottomLeftChild(
-					new QuadNode(currentNode.getLevel() + 1));
+					new QuadNode(nextLevel, QuadNode.BOTTOMLEFT));
 				currentNode.setBottomRightChild(
-					new QuadNode(currentNode.getLevel() + 1));
+					new QuadNode(nextLevel, QuadNode.BOTTOMRIGHT));
+				
+				QuadNode topLeft=currentNode.getTopLeftChild();
+				topLeft.setValue(currentNode.getValue());
 
-				fifou.add(new Integer(currentNode.getValue()));
-				fifou.add(currentNode.getTopLeftChild());
+				fifou.add(topLeft);
 				fifou.add(currentNode.getTopRightChild());
 				fifou.add(currentNode.getBottomRightChild());
-				fifou.add(null);
 				fifou.add(currentNode.getBottomLeftChild());
 			}
 		}
 	}
 
-	private void saveQgm(String path) throws FileNotFoundException {
-		saveQgm(new FileOutputStream(path));
+	private void saveQgm(String path, int stddev)
+		throws FileNotFoundException {
+		saveQgm(new FileOutputStream(path), stddev);
 	}
 
 	/**
 	 * Sauvegarde du quadtree au format QGM 
 	 */
-	public void saveQgm(OutputStream outOS) throws FileNotFoundException {
+	public void saveQgm(OutputStream outOS, int stddev)
+		throws FileNotFoundException {
 		PrintStream out= new PrintStream(outOS);
 		out.println("Q1");
 		out.println(numLevels + " " + maxValue + " " + ucode);
+		int lastLevel= numLevels - 1;
 
 		/* Utilisation d'une file pour le parcours en largeur */
 		List fifou= new ArrayList();
 		fifou.add(quadRoot);
 
 		while (!fifou.isEmpty()) {
-			boolean thisIsAFirstChild= false;
 			QuadNode n= (QuadNode)fifou.remove(0);
 
-			/* Le noeud est un premier fils si le prochain objet de la file
-			 * est nul (voir plus loin pourquoi)
-			 */
-			if (n == null) {
-				thisIsAFirstChild= true;
-				n= (QuadNode) (fifou.remove(0));
-			}
+			int value= n.getValue();
+			int level= n.getLevel();
+			boolean plain= n.isPlain();
+			short location= n.getLocation();
 
 			/* Récupération de la valeur du noeud à traiter
 			 */
-			int value= n.getValue();
 			if (value == ucode)
 				value++;
 
@@ -277,19 +282,15 @@ public class QuadImage {
 			 * La valeur est omise si le noeud est un premier fils.
 			 * Le marqueur est omis si le noeud fait partie du dernier niveau.
 			 */
-			if (n.isPlain()) {
-				if (thisIsAFirstChild) {
-					if (n.getLevel() != numLevels - 1) {
-//						out.print("" + ucode + " ");
-//						out.print("" + ucode + " ");
+			if (plain) {
+				if (location == QuadNode.TOPLEFT) {
+					if (level != lastLevel) {
 						out.write(ucode);
 						out.write(ucode);
 					}
 				} else {
-//					out.print("" + value + " ");
 					out.write(value);
-					if (n.getLevel() != numLevels - 1) {
-//						out.print("" + ucode + " ");
+					if (level != lastLevel) {
 						out.write(ucode);
 					}
 				}
@@ -299,17 +300,11 @@ public class QuadImage {
 			 * La valeur est omise si le noeud est un premier fils.
 			 */
 			else {
-				if (!thisIsAFirstChild) {
-//					out.print("" + value + " ");
+				if (location != QuadNode.TOPLEFT) {
 					out.write(value);
 				}
 
-				/* On indique la position du premier fils en insérant un objet
-				 * nul juste avant.
-				 */
-				fifou.add(null);
 				fifou.add(n.getTopLeftChild());
-
 				fifou.add(n.getTopRightChild());
 				fifou.add(n.getBottomRightChild());
 				fifou.add(n.getBottomLeftChild());

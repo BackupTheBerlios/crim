@@ -25,22 +25,34 @@ public class Main {
 
 		for (int i= 0; i < imagePathTab.length; i++) {
 			String path= imagePathTab[i];
-			if (!path.endsWith(".pgm"))
+			if (!path.endsWith(".pgm") || !path.matches("^.*512.*$"))
 				continue;
 
 			System.out.println("Traitement de " + path);
 
 			QuadImage image;
 
-			System.out.print("	Compression : ");
+			System.out.println("\tCompression");
+
+			System.out.print("\t\tChargement PGM : ");
 			System.out.flush();
 			image= new QuadImage("images/" + path);
-			image.save("out/" + path + ".qgm");
 			System.out.println("Ok");
 
-			System.out.print("	Décompression : ");
+			System.out.print("\t\tSauvegarde QGM : ");
+			System.out.flush();
+			image.saveCompressed("out/" + path + ".qgm", 10);
+			System.out.println("Ok");
+
+			System.out.println("\tDécompression");
+
+			System.out.print("\t\tChargement QGM : ");
 			System.out.flush();
 			image= new QuadImage("out/" + path + ".qgm");
+			System.out.println("Ok");
+			
+			System.out.print("\t\tSauvegarde PGM : ");
+			System.out.flush();
 			image.save("out2/" + path + ".qgm.pgm");
 			System.out.println("Ok");
 		}
