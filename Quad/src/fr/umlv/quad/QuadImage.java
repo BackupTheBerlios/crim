@@ -24,19 +24,24 @@ public class QuadImage {
 
 	private QuadImageChannel channels[];
 	private int numChannels;
-	private int colorspace= YCBCR;
+	private int colorspace= RGB;
 
 	public QuadImage(String path) throws IOException, ClassNotFoundException {
 		if (path.matches("^(.*)\\.(pgm|ppm)$")) {
 			Raster rasterRgb= new Raster(path);
 			Raster raster;
-
-			if (colorspace == YCBCR)
-				raster= rasterRgb.toYcbcr();
-			else if (colorspace == RGB)
+			
+			if (rasterRgb.getNumChannels()==1) {
 				raster= rasterRgb;
-			else
-				throw new QuadError("Espace de couleurs inconnu");
+			} else if (rasterRgb.getNumChannels() == 3) {
+				if (colorspace == YCBCR)
+					raster= rasterRgb.toYcbcr();
+				else if (colorspace == RGB)
+					raster= rasterRgb;
+				else
+					throw new QuadError("Espace de couleurs inconnu");
+			} else
+				throw new QuadError("Nombre de canaux inconnu");
 
 			numChannels= raster.getNumChannels();
 			channels= new QuadImageChannel[numChannels];
@@ -158,7 +163,7 @@ public class QuadImage {
 		rasterRgb.save(path);
 	}
 
-	public void saveQuadMap(String path) throws FileNotFoundException {
+	private void saveQuadMap(String path) throws FileNotFoundException {
 		PrintStream out= new PrintStream(new FileOutputStream(path));
 
 		if (numChannels == 1) {
@@ -206,7 +211,7 @@ public class QuadImage {
 
 	private void loadHuffman(String path)
 		throws IOException, ClassNotFoundException {
-		String baseName=new File(path).getName();
+		String baseName= new File(path).getName();
 		File tmpQgmFile= File.createTempFile(baseName, ".qgm");
 		String tmpQgm= tmpQgmFile.getCanonicalPath();
 
@@ -217,7 +222,7 @@ public class QuadImage {
 	}
 
 	private void saveHuffman(String path) throws IOException {
-		String baseName=new File(path).getName();
+		String baseName= new File(path).getName();
 		File tmpQgmFile= File.createTempFile(baseName, ".qgm");
 		String tmpQgm= tmpQgmFile.getCanonicalPath();
 
@@ -225,6 +230,10 @@ public class QuadImage {
 		Encoder encoder= new Encoder(tmpQgm, path);
 		encoder.encode();
 		tmpQgmFile.delete();
+	}
+
+	public int getNumChannels() {
+		return numChannels;
 	}
 
 }

@@ -171,20 +171,20 @@ public class QuadNode {
 	 * Création du raster correspondant au quadtree dont la racine est le noeud
 	 * courant (this)
 	 */
-	public RasterChannel toRasterBand(int height, int width, int values) {
+	public RasterChannel toRasterChannel(int height, int width, int values) {
 		if (plain)
 			return new RasterChannel(height, width, values, value);
 
 		int subRasterHeight= height / 2;
 		int subRasterWidth= width / 2;
 		return new RasterChannel(
-			topLeftChild.toRasterBand(subRasterHeight, subRasterWidth, values),
-			topRightChild.toRasterBand(subRasterHeight, subRasterWidth, values),
-			bottomLeftChild.toRasterBand(
+			topLeftChild.toRasterChannel(subRasterHeight, subRasterWidth, values),
+			topRightChild.toRasterChannel(subRasterHeight, subRasterWidth, values),
+			bottomLeftChild.toRasterChannel(
 				subRasterHeight,
 				subRasterWidth,
 				values),
-			bottomRightChild.toRasterBand(
+			bottomRightChild.toRasterChannel(
 				subRasterHeight,
 				subRasterWidth,
 				values));

@@ -55,7 +55,7 @@ public class QuadImageChannel {
 		int height= (int)Math.pow(2, numLevels-1);
 		int width= height;
 		int values= 255;
-		return quadRoot.toRasterBand(height, width, values);
+		return quadRoot.toRasterChannel(height, width, values);
 	}
 
 	private boolean belongsToLastLevel(QuadNode n) {
