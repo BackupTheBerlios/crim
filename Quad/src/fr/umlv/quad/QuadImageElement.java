@@ -31,9 +31,9 @@ public class QuadImageElement {
 
 	public Raster toRaster() {
 		if (uni==true) {
-			byte[] byteArray=new byte[height*width];
-			Arrays.fill(byteArray,value);
-			return new Raster(height,width,255,byteArray);
+			int[] array=new int[height*width];
+			Arrays.fill(array,value);
+			return new Raster(height,width,255,array);
 		}
 		Raster raster=
 			new Raster(

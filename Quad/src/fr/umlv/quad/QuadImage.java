@@ -59,13 +59,13 @@ public class QuadImage {
 //				currentHeight,
 //				currentWidth)) 
 //		{
-		if (currentWidth <= 1 || currentHeight <= 1) {
+		if (currentWidth <= 2 || currentHeight <= 2) {
 			/* Progression du traitement */
-			n++;
-			if (n % (pixels / 60) == 0) {
-				System.out.print('#');
-				System.out.flush();
-			}
+//			n++;
+//			if (n % (pixels / 60) == 0) {
+//				System.out.print('#');
+//				System.out.flush();
+//			}
 
 			currentQIE.setValue((byte)
 				raster.defaultValue(
