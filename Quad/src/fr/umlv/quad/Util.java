@@ -4,6 +4,8 @@
 package fr.umlv.quad;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.StreamTokenizer;
 
 /**
  * @author cpele
@@ -32,5 +34,22 @@ public class Util {
 
 	public static double log2(double i) {
 		return (Math.log(i)/log2);
+	}
+
+	/**
+	 * Lecture de la prochaine valeur depuis un fichier
+	 * @param tokenizer : Le tokenizer correspondant au fichier
+	 * @return : La valeur lue ou bien -1 en cas de fin de fichier
+	 * @throws IOException
+	 */
+	public static int nextValue(StreamTokenizer tokenizer)
+		throws IOException {
+		tokenizer.nextToken();
+		if (tokenizer.ttype == StreamTokenizer.TT_NUMBER) {
+			return (int)tokenizer.nval;
+		} else if (tokenizer.ttype == StreamTokenizer.TT_EOF) {
+			return -1;
+		} else
+			throw new QuadError("Format du fichier incorrect");
 	}
 }

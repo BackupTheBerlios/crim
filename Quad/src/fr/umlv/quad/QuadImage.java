@@ -8,6 +8,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.StreamTokenizer;
 import java.util.ArrayList;
@@ -61,7 +62,7 @@ public class QuadImage {
 	/*-------------------------------------------------------------*/
 
 	private void savePgm(String path) throws IOException {
-		int width= (int)Math.sqrt(Math.pow(4, numLevels));
+		int width= (int)Math.sqrt(Math.pow(4, numLevels - 1));
 		int height= width;
 		Raster r= quadRoot.toRaster(height, width, maxValue);
 		r.save(path);
@@ -79,7 +80,7 @@ public class QuadImage {
 		int height= raster.height();
 
 		/* Calcul du nombre de niveaux dans le quadtree */
-		double numLevels= Util.log4(width * height);
+		double numLevels= Util.log4(width * height) + 1;
 
 		/* Erreur si l'image n'est pas carrée ou si sa taille n'est pas de la 
 		 * forme 2^n * 2^n
@@ -106,22 +107,6 @@ public class QuadImage {
 		FileInputStream inputStream= new FileInputStream(path);
 		loadQgmHeaderAscii(inputStream);
 		loadQgmDataAscii(inputStream);
-	}
-
-	/**
-	 * Lecture de la prochaine valeur depuis un fichier
-	 * @param tokenizer : Le tokenizer correspondant au fichier
-	 * @return : La valeur lue ou bien -1 en cas de fin de fichier
-	 * @throws IOException
-	 */
-	private int nextValue(StreamTokenizer tokenizer) throws IOException {
-		tokenizer.nextToken();
-		if (tokenizer.ttype == tokenizer.TT_NUMBER) {
-			return (int)tokenizer.nval;
-		} else if (tokenizer.ttype == tokenizer.TT_EOF) {
-			return -1;
-		} else
-			throw new QuadError(path + ": Format du fichier incorrect");
 	}
 
 	/**
@@ -171,27 +156,41 @@ public class QuadImage {
 	 */
 	private void loadQgmDataAscii(InputStream inputStream) throws IOException {
 		StreamTokenizer tokenizer= new StreamTokenizer(inputStream);
-		List fifou= new ArrayList();
+		List fifou= new ArrayList(); // la file
 		quadRoot= new QuadNode();
 		fifou.add(quadRoot);
 
 		while (!fifou.isEmpty()) {
-			QuadNode n= (QuadNode)fifou.remove(0);
+			Object o= fifou.remove(0);
+			QuadNode n;
+			int value;
 
-			int value= nextValue(tokenizer);
-			if (value == ucode) {
-				value= nextValue(tokenizer);
-				n.setValue(value);
-				n.setPlain(true);
+			if (o instanceof Integer) {
+				value=((Integer)o).intValue();
+				n=(QuadNode)fifou.remove(0);
 			} else {
+				value= Util.nextValue(tokenizer);
+				n= (QuadNode)o;
+			}
+
+			int possibleUcode= Util.nextValue(tokenizer);
+			if (possibleUcode == ucode) {
+				n.setPlain(true);
 				n.setValue(value);
+				System.out.print(""+value+"(u) ");
+			} else {
+				tokenizer.pushBack();
+
 				n.setPlain(false);
+				n.setValue(value);
+				System.out.print(""+value+" ");
 
 				n.setTopLeftChild(new QuadNode());
 				n.setTopRightChild(new QuadNode());
-				n.setBottomRightChild(new QuadNode());
 				n.setBottomLeftChild(new QuadNode());
+				n.setBottomRightChild(new QuadNode());
 
+				fifou.add(new Integer(value));
 				fifou.add(n.getTopLeftChild());
 				fifou.add(n.getTopRightChild());
 				fifou.add(n.getBottomRightChild());
@@ -200,13 +199,17 @@ public class QuadImage {
 		}
 	}
 
+	private void saveQgmAscii(String path) throws FileNotFoundException {
+		saveQgmAscii(new FileOutputStream(path));
+	}
+
 	/**
 	 * Sauvegarde du quadtree au format QGM Ascii
 	 * Attention : le marqueur ucode est écrit _avant_ l'écriture de la
 	 * valeur d'un noeud uniforme
 	 */
-	private void saveQgmAscii(String path) throws FileNotFoundException {
-		PrintStream out= new PrintStream(new FileOutputStream(path));
+	public void saveQgmAscii(OutputStream outOS) throws FileNotFoundException {
+		PrintStream out= new PrintStream(outOS);
 		out.println("Q3");
 		out.println(numLevels + " " + maxValue + " " + ucode);
 
@@ -215,20 +218,43 @@ public class QuadImage {
 
 		while (!fifou.isEmpty()) {
 			QuadNode n= (QuadNode)fifou.remove(0);
+			boolean thisIsAFirstChild= false;
+
+			/* Si le noeud courant est null, c'est que l'élément suivant de la
+			 * file est un premier fils (voir plus loin).  Sa valeur n'est 
+			 * alors pas écrite dans le fichier puisque c'est la même que celle 
+			 * de son ancêtre
+			 */
+			if (n == null) {
+				n= (QuadNode)fifou.remove(0);
+				thisIsAFirstChild= true;
+			}
 
 			int value= n.getValue();
 			if (value == ucode)
 				value++;
 
 			if (n.isPlain()) {
-				out.print("" + ucode + " " + value + " ");
+				if (!thisIsAFirstChild)
+					out.print("" + value + " " + ucode + " ");
+				else
+					out.print("" + ucode + " ");
 			} else {
-				out.print("" + value + " ");
-				fifou.add(n.getTopLeftChild());
-				fifou.add(n.getTopRightChild());
-				fifou.add(n.getBottomRightChild());
-				fifou.add(n.getBottomLeftChild());
+				QuadNode node= (QuadNode)n;
+				if (!thisIsAFirstChild)
+					out.print("" + value + " ");
+
+				/* La présence d'un élément null dans la file indiquera que
+				 * l'élément suivant est le premier fils de ce noeud
+				 */
+				fifou.add(null);
+				fifou.add(node.getTopLeftChild());
+
+				fifou.add(node.getTopRightChild());
+				fifou.add(node.getBottomRightChild());
+				fifou.add(node.getBottomLeftChild());
 			}
 		}
 	}
+
 }

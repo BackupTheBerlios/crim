@@ -31,7 +31,7 @@ public class Raster {
 	 * @param height
 	 * @param values
 	 */
-	public Raster(int width, int height, int values) {
+	public Raster(int height, int width, int values) {
 		this.width= width;
 		this.height= height;
 		this.values= values;
@@ -46,16 +46,16 @@ public class Raster {
 	 * @param values
 	 * @param intArray
 	 */
-	public Raster(int width, int height, int values, int[] intArray) {
-		this(width, height, values);
+	public Raster(int height, int width, int values, int[] intArray) {
+		this(height, width, values);
 		load(intArray);
 	}
 
 	/**
 	 * Création d'un raster à partir d'une valeur par défaut
 	 */
-	public Raster(int width, int height, int values, int defaultValue) {
-		this(width, height, values);
+	public Raster(int height, int width, int values, int defaultValue) {
+		this(height, width, values);
 		Arrays.fill(array, defaultValue);
 	}
 
@@ -481,7 +481,7 @@ public class Raster {
 	 * @return : Vrai si la variance des pixels de le zone est inférieure à 
 	 * une valeur
 	 */
-	public boolean isPlainStddev(
+	public boolean isPlainDev(
 		int lineOffset,
 		int columnOffset,
 		int height,

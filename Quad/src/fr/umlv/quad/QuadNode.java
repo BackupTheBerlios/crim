@@ -11,8 +11,8 @@ import java.io.IOException;
  * Elément d'une QuadImage (pixel de l'image ou noeud de l'arbre)
  */
 public class QuadNode {
-	private int value;
 	private boolean plain;
+	private int value;
 
 	private QuadNode topLeftChild;
 	private QuadNode topRightChild;
@@ -40,29 +40,20 @@ public class QuadNode {
 		throws IOException {
 		/* Condition d'arrêt de la récursion : la région du raster considérée 
 		 * est homogène */
-//		 if (raster
-//			 .isPlainPixel(
-//				 currentLineOffset,
-//				 currentColumnOffset,
-//				 currentHeight,
-//				 currentWidth)) {
 		if (raster
-			.isPlainStddev(
+			.isPlainPixel(
 				currentLineOffset,
 				currentColumnOffset,
 				currentHeight,
-				currentWidth, 15)) {
-			this.setValue(
+				currentWidth)) {
+			plain= true;
+			value=
 				(int)raster.mean(
 					currentLineOffset,
 					currentColumnOffset,
 					currentHeight,
-					currentWidth));
-			this.setPlain(true);
+					currentWidth);
 			return;
-		} else {
-			this.setValue(-1);
-			this.setPlain(false);
 		}
 
 		/*-- Appels récursifs ------------------------------------------*/
@@ -71,40 +62,43 @@ public class QuadNode {
 		int childRasterWidth= currentWidth / 2;
 
 		/* Appel récursif (quart supérieur gauche) */
-		this.setTopLeftChild(
+		topLeftChild=
 			new QuadNode(
 				raster,
 				currentLineOffset,
 				currentColumnOffset,
 				childRasterHeight,
-				childRasterWidth));
+				childRasterWidth);
 
 		/* Appel récursif (quart supérieur droit) */
-		this.setTopRightChild(
+		topRightChild=
 			new QuadNode(
 				raster,
 				currentLineOffset,
 				currentColumnOffset + currentWidth / 2,
 				childRasterHeight,
-				childRasterWidth));
+				childRasterWidth);
 
 		/* Appel récursif (quart inférieur gauche) */
-		this.setBottomLeftChild(
+		bottomLeftChild=
 			new QuadNode(
 				raster,
 				currentLineOffset + currentHeight / 2,
 				currentColumnOffset,
 				childRasterHeight,
-				childRasterWidth));
+				childRasterWidth);
 
 		/* Appel récursif (quart inférieur droit) */
-		this.setBottomRightChild(
+		bottomRightChild=
 			new QuadNode(
 				raster,
 				currentLineOffset + currentHeight / 2,
 				currentColumnOffset + currentWidth / 2,
 				childRasterHeight,
-				childRasterWidth));
+				childRasterWidth);
+
+		value= topLeftChild.value;
+		plain= false;
 	}
 
 	/**
@@ -112,9 +106,9 @@ public class QuadNode {
 	 * courant (this)
 	 */
 	public Raster toRaster(int height, int width, int values) {
-		if (plain == true) {
-			return new Raster(height, width, values, this.value);
-		}
+		if (plain)
+			return new Raster(height, width, values, value);
+
 		int subRasterHeight= height / 2;
 		int subRasterWidth= width / 2;
 		return new Raster(
@@ -166,11 +160,11 @@ public class QuadNode {
 		topRightChild= element;
 	}
 
-	public void setPlain(boolean b) {
-		plain= b;
-	}
-
 	public void setValue(int b) {
 		value= b;
+	}
+
+	public void setPlain(boolean plain) {
+		this.plain= plain;
 	}
 }
