@@ -355,7 +355,7 @@ public class Raster {
 			throw new QuadError(msgBuf.toString());
 	}
 
-	/*-- Traitement de l'image (marche pas) ------------------------*/
+	/*-- Traitements -----------------------------------------------*/
 
 	public int numPixels() {
 		return array.length;
@@ -365,9 +365,10 @@ public class Raster {
 		int lineOffset,
 		int columnOffset,
 		int height,
-		int width) {
+		int width)
+	{
 		return mean(lineOffset, columnOffset, height, width);
-		//		return pixel(lineOffset,columnOffset)-256;
+//		return pixel(lineOffset, columnOffset);
 	}
 
 	private double mean(
@@ -398,7 +399,7 @@ public class Raster {
 		//	   Calculate the mean
 		double mean= 0;
 		final int n= height * width;
-		if (n < 2)
+		if (n <= 1)
 			return Double.NaN;
 		for (int i= 0; i < height; i++) {
 			for (int j= 0; j < width; j++) {
@@ -438,7 +439,12 @@ public class Raster {
 		int columnOffset,
 		int height,
 		int width) {
-		return stddev(lineOffset, columnOffset, height, width) < 50;
+		if (height * width <= 1)
+			return true;
+		double stddev= stddev(lineOffset, columnOffset, height, width);
+		if (stddev < 15)
+			return true;
+		return false;
 	}
 
 	private int max(int b1, int b2) {

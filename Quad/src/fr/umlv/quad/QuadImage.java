@@ -32,7 +32,7 @@ public class QuadImage {
 		System.out.print("Construction du quadtree: ");
 		System.out.flush();
 		buildQuadTreeWithOffsets(quadRoot, raster, 0, 0, height, width);
-		System.out.println();
+		System.out.println("Ok");
 
 	}
 
@@ -52,23 +52,23 @@ public class QuadImage {
 		int values= raster.values();
 
 		/* Condition d'arr�t de la r�cursion */
-//		if (raster
-//			.isUni(
-//				currentLineOffset,
-//				currentColumnOffset,
-//				currentHeight,
-//				currentWidth)) 
-//		{
-		if (currentWidth <= 2 || currentHeight <= 2) {
+		if (raster
+			.isUni(
+				currentLineOffset,
+				currentColumnOffset,
+				currentHeight,
+				currentWidth)) 
+		{
+//		if (currentWidth <= 2 || currentHeight <= 2) {
 			/* Progression du traitement */
-//			n++;
-//			if (n % (pixels / 60) == 0) {
-//				System.out.print('#');
-//				System.out.flush();
-//			}
+			//			n++;
+			//			if (n % (pixels / 60) == 0) {
+			//				System.out.print('#');
+			//				System.out.flush();
+			//			}
 
-			currentQIE.setValue((byte)
-				raster.defaultValue(
+			currentQIE.setValue(
+				(byte)raster.defaultValue(
 					currentLineOffset,
 					currentColumnOffset,
 					currentHeight,

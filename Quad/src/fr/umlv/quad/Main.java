@@ -20,8 +20,8 @@ public class Main {
 	public static void main(String[] args)
 	throws FileNotFoundException,IOException
 	{
-//		QuadImage image=new QuadImage("images/galaxie.1024.pgm");
-		QuadImage image=new QuadImage("images/Boat.512.pgm");
+		QuadImage image=new QuadImage("images/galaxie.1024.pgm");
+//		QuadImage image=new QuadImage("images/Boat.512.pgm");
 //		QuadImage image=new QuadImage("images/Boat.64.pgm");
 //		QuadImage image=new QuadImage("images/Boat.16.pgm");
 //		QuadImage image=new QuadImage("images/black.512.pgm");
