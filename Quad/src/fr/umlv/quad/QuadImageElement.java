@@ -12,5 +12,14 @@ public class QuadImageElement {
 	byte value;
 	double variance;
 	boolean uni;
-	QuadImageElement next;
+	int id;
+	
+	static int sid=0;
+	
+	public QuadImageElement() {id=sid++;}
+	
+	QuadImageElement topLeft;
+	QuadImageElement topRight;
+	QuadImageElement bottomLeft;
+	QuadImageElement bottomRight;
 }

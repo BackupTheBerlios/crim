@@ -13,6 +13,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.StreamTokenizer;
+import java.util.Arrays;
 
 /**
  * @author cpele
@@ -182,28 +183,48 @@ public class Raster {
 	/*-- Gestion des pixels ---------------------------------------*/
 
 	public byte pixel(int line, int column) {
-		checkDimensions(line,column);
+		checkDimensions(line, column);
 		return byteArray[line * width + column];
 	}
 
 	public void pixel(int line, int column, byte value) {
-		checkDimensions(line,column);
+		checkDimensions(line, column);
 		byteArray[line * width + column]= value;
 	}
 
 	private void checkDimensions(int line, int column) {
-		boolean ok=true;
-		StringBuffer msgBuf=new StringBuffer();
-		
-		if (line>=height || line<0) {
-			msgBuf.append("Impossible d'aller à la ligne demandée ("+line+")");
-			ok=false;
-		}		
-		if (column>=width || column<0) {
+		boolean ok= true;
+		StringBuffer msgBuf= new StringBuffer();
+
+		if (line >= height || line < 0) {
 			msgBuf.append(
-				"\nImpossible d'aller à la colonne demandée ("+column+")");
-			ok=false;
+				"Impossible d'aller à la ligne demandée (" + line + ")");
+			ok= false;
 		}
-		if (!ok) throw new QuadError(msgBuf.toString());
+		if (column >= width || column < 0) {
+			msgBuf.append(
+				"\nImpossible d'aller à la colonne demandée (" + column + ")");
+			ok= false;
+		}
+		if (!ok)
+			throw new QuadError(msgBuf.toString());
+	}
+
+	public int numPixels() {
+		return byteArray.length;
+	}
+
+	public byte defaultValue() {
+		return mean();
+	}
+
+	private byte mean() {
+		double mean= 0;
+		int i= 0;
+		for (i= 0; i < numPixels(); i++) {
+			mean += byteArray[i];
+		}
+		mean /= i;
+		return (byte)mean;
 	}
 }

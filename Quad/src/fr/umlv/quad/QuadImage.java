@@ -4,7 +4,9 @@
 package fr.umlv.quad;
 
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 
 /**
  * @author Christophe Pel?
@@ -12,9 +14,10 @@ import java.io.IOException;
  * Image en niveaux de gris repr?sent?e par un quadtree hi?rarchique
  */
 public class QuadImage {
-	private QuadImageElement quadTab[];
+	private QuadImageElement quadRoot;
 	private int numLevels;
 	private Raster raster;
+	private int n= 0;
 
 	/**
 	 * Cr?ation d'une image ? partir d'un fichier sur le disque
@@ -25,8 +28,9 @@ public class QuadImage {
 		int width= raster.width();
 		int height= raster.height();
 		numLevels= 1 + (int) (log2(width * height) / 2.);
-		quadTab= new QuadImageElement[width * height * numLevels];
-		buildQuadTreeLevel(numLevels - 1, raster);
+		n= 0;
+		quadRoot= new QuadImageElement();
+		buildQuadTree(quadRoot, raster);
 	}
 
 	double log2(double d) {
@@ -36,13 +40,12 @@ public class QuadImage {
 	private Raster buildSubRaster(
 		Raster raster,
 		int lineOffset,
-		int columnOffset)
-	{
+		int columnOffset) {
 		int width= raster.width();
 		int height= raster.height();
 		int values= raster.values();
 
-		Raster subRaster= new Raster(width/2, height/2, values);
+		Raster subRaster= new Raster(width / 2, height / 2, values);
 		for (int i= lineOffset; i < height / 2 + lineOffset; i++) {
 			for (int j= columnOffset; j < width / 2 + columnOffset; j++) {
 				byte value= raster.pixel(i, j);
@@ -51,46 +54,73 @@ public class QuadImage {
 		}
 		return subRaster;
 	}
-	
-	private int n=0;
 
 	/** 
 	 * Cr?ation du quadtree ? partir du raster qui a ?t? charg?
 	 */
-	private void buildQuadTreeLevel(int level, Raster raster)
-	throws IOException
-	{
-		if (level==1) {
-			if (n%1000==0) 
-				System.out.println(n++);
-			n++;
-			return;
-		}
+	private void buildQuadTree(QuadImageElement currentQIE, Raster raster)
+		throws IOException {
+		currentQIE.value= raster.defaultValue();
+		currentQIE.uni= false;
+		currentQIE.variance= 0;
+
 		int width= raster.width();
 		int height= raster.height();
 		int values= raster.values();
 
-		Raster topLeftRaster;
-		Raster topRightRaster;
-		Raster bottomLeftRaster;
-		Raster bottomRightRaster;
+		if (raster.numPixels() <= 1) {
+			n++;
+			if (n % 50000 == 0)
+				System.out.println(n);
+			return;
+		}
 
-		raster.save("/home/cpele/tmp/raster"+level+".pgm");
+		Raster topLeftRaster= buildSubRaster(raster, 0, 0);
+		Raster topRightRaster= buildSubRaster(raster, 0, width / 2);
+		Raster bottomRightRaster= buildSubRaster(raster, height / 2, width / 2);
+		Raster bottomLeftRaster= buildSubRaster(raster, height / 2, 0);
 
-		topLeftRaster= buildSubRaster(raster, 0, 0);
-		topRightRaster= buildSubRaster(raster, 0, width / 2);
-		bottomRightRaster= buildSubRaster(raster, height / 2, width / 2);
-		bottomLeftRaster= buildSubRaster(raster, height / 2, 0);
-
-//		topLeftRaster.save("/home/cpele/tmp/topleft"+level+".pgm");
-//		topRightRaster.save("/home/cpele/tmp/topright"+level+".pgm");
-//		bottomLeftRaster.save("/home/cpele/tmp/bottomleft"+level+".pgm");
-//		bottomRightRaster.save("/home/cpele/tmp/bottomright"+level+".pgm");
-
-		buildQuadTreeLevel(level-1,topLeftRaster);
-		buildQuadTreeLevel(level-1,bottomLeftRaster);
-		buildQuadTreeLevel(level-1,topRightRaster);
-		buildQuadTreeLevel(level-1,bottomRightRaster);
+		currentQIE.topLeft= new QuadImageElement();
+		currentQIE.topRight= new QuadImageElement();
+		currentQIE.bottomLeft= new QuadImageElement();
+		currentQIE.bottomRight= new QuadImageElement();
+		buildQuadTree(currentQIE.topLeft, topLeftRaster);
+		buildQuadTree(currentQIE.bottomLeft, bottomLeftRaster);
+		buildQuadTree(currentQIE.topRight, topRightRaster);
+		buildQuadTree(currentQIE.bottomRight, bottomRightRaster);
 	}
 
+	public void save(String path) throws FileNotFoundException {
+		if (path.endsWith(".dot")) {
+			Util.makeDir(path);
+			FileOutputStream outOS= new FileOutputStream(path);
+			PrintStream out= new PrintStream(outOS);
+			out.println("digraph shells {");
+			out.println("node [fontsize=20, shape = box];");
+			exportRec(quadRoot, out);
+			out.println("}");
+		} else {
+			throw new QuadError(path + ": Type de fichier inconnu");
+		}
+	}
+
+	private void exportRec(QuadImageElement quadElement, PrintStream out) {
+		if (quadElement.bottomLeft != null) {
+			out.println("" + quadElement.id + " -> " + quadElement.bottomLeft.id);
+			exportRec(quadElement.bottomLeft, out);
+		}
+		if (quadElement.bottomRight != null) {
+			out.println(
+				"" + quadElement.id + " -> " + quadElement.bottomRight.id);
+			exportRec(quadElement.bottomRight, out);
+		}
+		if (quadElement.topLeft != null) {
+			out.println("" + quadElement.id + " -> " + quadElement.topLeft.id);
+			exportRec(quadElement.topLeft, out);
+		}
+		if (quadElement.topRight != null) {
+			out.println("" + quadElement.id + " -> " + quadElement.topRight.id);
+			exportRec(quadElement.topRight, out);
+		}
+	}
 }
