@@ -1,12 +1,12 @@
 /*
- * Créé le 5 févr. 2004
+ * Cr?? le 5 f?vr. 2004
  */
 package fr.umlv.quad;
 
 /**
  * @author cpele
  * 
- * Elément d'une ImageQuad (pixel de l'image ou noeud de l'arbre)
+ * El?ment d'une ImageQuad (pixel de l'image ou noeud de l'arbre)
  */
 public class QuadImageElement {
 	byte value;

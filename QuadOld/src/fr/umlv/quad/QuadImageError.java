@@ -1,5 +1,5 @@
 /*
- * Créé le 5 févr. 2004
+ * Cr?? le 5 f?vr. 2004
  *
  */
 package fr.umlv.quad;
@@ -7,7 +7,7 @@ package fr.umlv.quad;
 /**
  * @author cpele
  *
- * Exception levée quand on tente de charger une image de type inconnu
+ * Exception lev?e quand on tente de charger une image de type inconnu
  */
 public class QuadImageError extends RuntimeException {
 	private Exception internalError;

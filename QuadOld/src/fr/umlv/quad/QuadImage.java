@@ -1,5 +1,5 @@
 /*
- * Créé le 5 févr. 2004
+ * Cr?? le 5 f?vr. 2004
  */
 package fr.umlv.quad;
 
@@ -12,9 +12,9 @@ import java.io.InputStreamReader;
 import java.io.StreamTokenizer;
 
 /**
- * @author Christophe Pelé
+ * @author Christophe Pel?
  *
- * Image en niveaux de gris représentée par un quadtree hiérarchique
+ * Image en niveaux de gris repr?sent?e par un quadtree hi?rarchique
  */
 public class QuadImage {
 	private QuadImageElement level[][];
@@ -22,7 +22,7 @@ public class QuadImage {
 	private byte[] raster;
 	
 	/**
-	 * Création d'une image à partir d'un fichier sur le disque
+	 * Cr?ation d'une image ? partir d'un fichier sur le disque
 	 * @param chemin : Chemin du fichier
 	 */
 	public QuadImage(String path) throws FileNotFoundException,IOException {
@@ -30,7 +30,7 @@ public class QuadImage {
 			BufferedReader inReader=
 				new BufferedReader(new InputStreamReader(System.in));
 
-			System.out.println("Paramètres de l'image : ");
+			System.out.println("Param?tres de l'image : ");
 			System.out.print("	Hauteur : ");
 			int height=Integer.parseInt(inReader.readLine());
 			System.out.print("	Largeur : ");
@@ -49,7 +49,7 @@ public class QuadImage {
 	}
 
 	/** 
-	 * Création du quadtree à partir du raster qui a été chargé
+	 * Cr?ation du quadtree ? partir du raster qui a ?t? charg?
 	 */
 	private void buildQuadTreeFromRaster() {
 		// TODO Auto-generated method stub
@@ -83,9 +83,9 @@ public class QuadImage {
 	}
 
 	/**
-	 * Charge l'en-tête d'une image pgm
+	 * Charge l'en-t?te d'une image pgm
 	 * 
-	 * @param inputStream : Le flux correspondant à l'image
+	 * @param inputStream : Le flux correspondant ? l'image
 	 * @throws IOException
 	 */
 	private void loadHeaderFromPgm(InputStream inputStream)
@@ -118,7 +118,7 @@ public class QuadImage {
 	/**
  	 * Charge le contenu brut d'une image (raster)
  	 * 
-	 * @param inputStream : Flux correspondant à l'image
+	 * @param inputStream : Flux correspondant ? l'image
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
@@ -129,6 +129,6 @@ public class QuadImage {
 		int n=inputStream.read(raster);
 		if (n<height*width)
 			throw new QuadImageError(
-				"Fin de fichier inattendue à l'octet n°"+n+" du raster");
+				"Fin de fichier inattendue ? l'octet n?"+n+" du raster");
 	}
 }
