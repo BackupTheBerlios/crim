@@ -47,8 +47,6 @@ public class Util {
 		tokenizer.nextToken();
 		if (tokenizer.ttype == StreamTokenizer.TT_NUMBER) {
 			return (int)tokenizer.nval;
-		} else if (tokenizer.ttype == StreamTokenizer.TT_EOF) {
-			return -1;
 		} else
 			throw new QuadError("Format du fichier incorrect");
 	}

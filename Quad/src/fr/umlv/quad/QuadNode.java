@@ -41,11 +41,12 @@ public class QuadNode {
 		/* Condition d'arrêt de la récursion : la région du raster considérée 
 		 * est homogène */
 		if (raster
-			.isPlainPixel(
+			.isPlainDev(
 				currentLineOffset,
 				currentColumnOffset,
 				currentHeight,
-				currentWidth)) {
+				currentWidth,
+				15)) {
 			plain= true;
 			value=
 				(int)raster.mean(

@@ -35,7 +35,7 @@ public class QuadImage {
 		if (path.endsWith(".pgm")) {
 			loadPgm(path);
 		} else if (path.endsWith(".qgm")) {
-			loadQgmAscii(path);
+			loadQgm(path);
 		} else {
 			throw new QuadError(path + ": Format de fichier inconnu");
 		}
@@ -51,7 +51,7 @@ public class QuadImage {
 		if (path.endsWith(".pgm")) {
 			savePgm(path);
 		} else if (path.endsWith(".qgm")) {
-			saveQgmAscii(path);
+			saveQgm(path);
 		} else {
 			throw new QuadError(path + ": Type de fichier inconnu");
 		}
@@ -103,16 +103,16 @@ public class QuadImage {
 	/**
 	 * Chargement d'une image QGM ASCII (Q2)
 	 */
-	private void loadQgmAscii(String path) throws IOException {
+	private void loadQgm(String path) throws IOException {
 		FileInputStream inputStream= new FileInputStream(path);
-		loadQgmHeaderAscii(inputStream);
-		loadQgmDataAscii(inputStream);
+		loadQgmHeader(inputStream);
+		loadQgmData(inputStream);
 	}
 
 	/**
 	 * Chargement de l'en-tête du fichier QGM
 	 */
-	private void loadQgmHeaderAscii(FileInputStream inputStream)
+	private void loadQgmHeader(FileInputStream inputStream)
 		throws IOException {
 		StreamTokenizer tokenizer= new StreamTokenizer(inputStream);
 
@@ -150,41 +150,56 @@ public class QuadImage {
 	}
 
 	/**
-	 * Lecture des données d'une image QGM au format ASCII
+	 * Lecture des données d'une image QGM au format 
 	 * @param inputStream
 	 * @throws IOException
 	 */
-	private void loadQgmDataAscii(InputStream inputStream) throws IOException {
-		StreamTokenizer tokenizer= new StreamTokenizer(inputStream);
+	private void loadQgmData(InputStream inputStream) throws IOException {
+		QuadTokenizer tokenizer= new QuadTokenizer(inputStream, ucode);
 		List fifou= new ArrayList(); // la file
 		quadRoot= new QuadNode();
 		fifou.add(quadRoot);
 
 		while (!fifou.isEmpty()) {
-			Object o= fifou.remove(0);
+			Object o= (QuadNode)fifou.remove(0);
 			QuadNode n;
+			boolean currentIsFirstChild= false;
+			boolean currentIsLastChild= false;
+			boolean currentNodeIsPlain= false;
 			int value;
 
-			if (o instanceof Integer) {
-				value=((Integer)o).intValue();
-				n=(QuadNode)fifou.remove(0);
+			if (o == null) {
+				currentIsFirstChild= false;
+				currentIsLastChild= true;
+
+				n= (QuadNode)fifou.remove(0);
+				tokenizer.next(currentIsFirstChild, currentIsLastChild);
+
+				n.setValue(value= tokenizer.value());
+				n.setPlain(tokenizer.plain());
+			} else if (o instanceof Integer) {
+				currentIsFirstChild= true;
+				currentIsLastChild= false;
+
+				Integer i= (Integer)o;
+
+				n= (QuadNode)fifou.remove(0);
+				tokenizer.next(currentIsFirstChild, currentIsLastChild);
+
+				n.setValue(value= i.intValue());
+				n.setPlain(tokenizer.plain());
 			} else {
-				value= Util.nextValue(tokenizer);
+				currentIsFirstChild= false;
+				currentIsLastChild= false;
+
 				n= (QuadNode)o;
+				tokenizer.next(currentIsFirstChild, currentIsLastChild);
+
+				n.setValue(value= tokenizer.value());
+				n.setPlain(tokenizer.plain());
 			}
 
-			int possibleUcode= Util.nextValue(tokenizer);
-			if (possibleUcode == ucode) {
-				n.setPlain(true);
-				n.setValue(value);
-				System.out.print(""+value+"(u) ");
-			} else {
-				tokenizer.pushBack();
-
-				n.setPlain(false);
-				n.setValue(value);
-				System.out.print(""+value+" ");
-
+			if (!n.isPlain()) {
 				n.setTopLeftChild(new QuadNode());
 				n.setTopRightChild(new QuadNode());
 				n.setBottomLeftChild(new QuadNode());
@@ -194,67 +209,61 @@ public class QuadImage {
 				fifou.add(n.getTopLeftChild());
 				fifou.add(n.getTopRightChild());
 				fifou.add(n.getBottomRightChild());
+				fifou.add(null);
 				fifou.add(n.getBottomLeftChild());
 			}
 		}
 	}
 
-	private void saveQgmAscii(String path) throws FileNotFoundException {
-		saveQgmAscii(new FileOutputStream(path));
+	private void saveQgm(String path) throws FileNotFoundException {
+		saveQgm(new FileOutputStream(path));
 	}
 
 	/**
-	 * Sauvegarde du quadtree au format QGM Ascii
-	 * Attention : le marqueur ucode est écrit _avant_ l'écriture de la
-	 * valeur d'un noeud uniforme
+	 * Sauvegarde du quadtree au format QGM 
 	 */
-	public void saveQgmAscii(OutputStream outOS) throws FileNotFoundException {
+	public void saveQgm(OutputStream outOS) throws FileNotFoundException {
 		PrintStream out= new PrintStream(outOS);
-		out.println("Q3");
+		out.println("Q1");
 		out.println(numLevels + " " + maxValue + " " + ucode);
 
 		List fifou= new ArrayList();
 		fifou.add(quadRoot);
 
 		while (!fifou.isEmpty()) {
-			QuadNode n= (QuadNode)fifou.remove(0);
 			boolean thisIsAFirstChild= false;
+			QuadNode n= (QuadNode)fifou.remove(0);
 
-			/* Si le noeud courant est null, c'est que l'élément suivant de la
-			 * file est un premier fils (voir plus loin).  Sa valeur n'est 
-			 * alors pas écrite dans le fichier puisque c'est la même que celle 
-			 * de son ancêtre
-			 */
 			if (n == null) {
-				n= (QuadNode)fifou.remove(0);
 				thisIsAFirstChild= true;
+				n= (QuadNode) (fifou.remove(0));
 			}
 
-			int value= n.getValue();
-			if (value == ucode)
-				value++;
-
+			/* Si le noeud courant est uniforme, on écrit sa valeur suivie
+			 * du marqueur ucode.
+			 */
 			if (n.isPlain()) {
-				if (!thisIsAFirstChild)
-					out.print("" + value + " " + ucode + " ");
-				else
-					out.print("" + ucode + " ");
-			} else {
-				QuadNode node= (QuadNode)n;
-				if (!thisIsAFirstChild)
-					out.print("" + value + " ");
+				if (thisIsAFirstChild) {
+					out.write(ucode);
+					out.write(ucode);
+				} else {
+					out.write(n.getValue());
+					out.write(ucode);
+				}
+			}
 
-				/* La présence d'un élément null dans la file indiquera que
-				 * l'élément suivant est le premier fils de ce noeud
-				 */
+			/* Si le noeud n'est pas uniforme, on écrit juste sa valeur.
+			 */
+			else {
+				if (!thisIsAFirstChild)
+					out.write(n.getValue());
+
 				fifou.add(null);
-				fifou.add(node.getTopLeftChild());
-
-				fifou.add(node.getTopRightChild());
-				fifou.add(node.getBottomRightChild());
-				fifou.add(node.getBottomLeftChild());
+				fifou.add(n.getTopLeftChild());
+				fifou.add(n.getTopRightChild());
+				fifou.add(n.getBottomRightChild());
+				fifou.add(n.getBottomLeftChild());
 			}
 		}
 	}
-
 }
