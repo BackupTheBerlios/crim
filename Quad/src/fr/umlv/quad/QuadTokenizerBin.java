@@ -23,7 +23,7 @@ public class QuadTokenizerBin extends QuadTokenizer {
 		if (buffer.size() == 0) {
 			int value= in.read();
 			if (value==-1)
-				throw new QuadError("Fin de fichier inattendue");
+				return EOF;
 			return value;
 		}
 		return ((Integer)buffer.remove(0)).intValue();

@@ -13,13 +13,15 @@ import java.io.IOException;
 public class QuadNode {
 	private boolean plain;
 	private int value;
+	private int level;
 
 	private QuadNode topLeftChild;
 	private QuadNode topRightChild;
 	private QuadNode bottomLeftChild;
 	private QuadNode bottomRightChild;
 
-	public QuadNode() {
+	public QuadNode(int level) {
+		this.level= level;
 	}
 
 	/** 
@@ -36,8 +38,12 @@ public class QuadNode {
 		int currentLineOffset,
 		int currentColumnOffset,
 		int currentHeight,
-		int currentWidth)
-		throws IOException {
+		int currentWidth,
+		int level)
+		throws IOException
+	{
+		this(level);
+
 		/* Condition d'arrêt de la récursion : la région du raster considérée 
 		 * est homogène */
 		if (raster
@@ -45,8 +51,7 @@ public class QuadNode {
 				currentLineOffset,
 				currentColumnOffset,
 				currentHeight,
-				currentWidth,
-				15)) {
+				currentWidth, 15)) {
 			plain= true;
 			value=
 				(int)raster.mean(
@@ -69,7 +74,8 @@ public class QuadNode {
 				currentLineOffset,
 				currentColumnOffset,
 				childRasterHeight,
-				childRasterWidth);
+				childRasterWidth,
+				level + 1);
 
 		/* Appel récursif (quart supérieur droit) */
 		topRightChild=
@@ -78,7 +84,8 @@ public class QuadNode {
 				currentLineOffset,
 				currentColumnOffset + currentWidth / 2,
 				childRasterHeight,
-				childRasterWidth);
+				childRasterWidth,
+				level + 1);
 
 		/* Appel récursif (quart inférieur gauche) */
 		bottomLeftChild=
@@ -87,7 +94,8 @@ public class QuadNode {
 				currentLineOffset + currentHeight / 2,
 				currentColumnOffset,
 				childRasterHeight,
-				childRasterWidth);
+				childRasterWidth,
+				level + 1);
 
 		/* Appel récursif (quart inférieur droit) */
 		bottomRightChild=
@@ -96,7 +104,8 @@ public class QuadNode {
 				currentLineOffset + currentHeight / 2,
 				currentColumnOffset + currentWidth / 2,
 				childRasterHeight,
-				childRasterWidth);
+				childRasterWidth,
+				level + 1);
 
 		value= topLeftChild.value;
 		plain= false;
@@ -167,5 +176,13 @@ public class QuadNode {
 
 	public void setPlain(boolean plain) {
 		this.plain= plain;
+	}
+
+	public int getLevel() {
+		return level;
+	}
+
+	public void setLevel(int i) {
+		level= i;
 	}
 }

@@ -24,7 +24,7 @@ public class QuadTokenizerAscii extends QuadTokenizer {
 			if (ttype == tokenizer.TT_NUMBER) {
 				return (int)tokenizer.nval;
 			} if (ttype==tokenizer.TT_EOF) {
-				throw new QuadError("Fin de fichier inattendue");
+				return EOF;
 			} else {
 				throw new QuadError("Format de fichier incorrect");
 			}
